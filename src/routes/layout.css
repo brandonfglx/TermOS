@@ -4,12 +4,20 @@
 
 @layer base {
 	html {
-		@apply bg-white text-black dark:bg-term-bg dark:text-term-fg;
+		@apply bg-desktop-light-bg text-light-fg dark:bg-desktop-dark-bg dark:text-dark-fg;
 	}
 }
 
 @theme {
-	--color-term-bg: rgb(30, 30, 30);
-	--color-term-fg: rgb(255, 255, 255);
+	--color-header-light-bg: rgb(226, 226, 226);
+	--color-header-dark-bg: rgb(40, 40, 40);
+	--color-desktop-light-bg: rgb(255, 255, 255);
+	--color-desktop-dark-bg: rgb(30, 30, 30);
+	--color-term-light-bg: rgb(196, 196, 196);
+	--color-term-dark-bg: rgb(20, 20, 20);
+	--color-light-fg: rgb(0, 0, 0);
+	--color-dark-fg: rgb(255, 255, 255);
 	--color-term-cursor: rgb(152, 152, 157);
+	--color-separator-light: rgb(32, 32, 32);
+	--color-separator-dark: rgb(64, 64, 64);
 }

@@ -1,6 +1,15 @@
 <script lang="ts">
+    import { onMount } from "svelte";
 
+	// When loaded, dynamically fetch all applications
+	onMount(() => {
+		
+	});
 </script>
 
-<!-- Icons for applications; default: TermTab Mode (launch via terminal, but GUI app), otherwise: Terminal Mode (complete TUI - has Styling) -->
+<!-- The main interface for apps and terminal; each app has its own window and can be switch via keybinds (ctrl + `) -->
+
+<div class="flex-1">
+	
+</div>
 
