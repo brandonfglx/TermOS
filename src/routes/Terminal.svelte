@@ -40,5 +40,5 @@
 <!-- Bottom bar is a terminal input (always present) commands are called and debug/info is printed to terminal "app" on desktop (unless launched using -cli) -->
 
 <div class="bg-term-light-bg dark:bg-term-dark-bg p-2 font-mono text-base">
-	<span class="break-all whitespace-pre-wrap">guest@TermOS % {terminal.input.substring(0, terminal.inputIndex)}</span>{#if terminal.input.charAt(terminal.inputIndex).trim().length === 0}<span id="cursor" class="break-all whitespace-pre-wrap align-text-bottom">{terminal.input.charAt(terminal.inputIndex)}</span>{:else}<span id="cursor" class="break-all whitespace-pre-wrap">{terminal.input.charAt(terminal.inputIndex)}</span>{/if}<span class="break-all whitespace-pre-wrap">{terminal.input.substring(terminal.inputIndex + 1)}</span>
+	<span class="break-all whitespace-pre-wrap">{terminal.prefix}{terminal.input.substring(0, terminal.inputIndex)}</span>{#if terminal.input.charAt(terminal.inputIndex).trim().length === 0}<span id="cursor" class="break-all whitespace-pre-wrap align-text-bottom">{terminal.input.charAt(terminal.inputIndex)}</span>{:else}<span id="cursor" class="break-all whitespace-pre-wrap">{terminal.input.charAt(terminal.inputIndex)}</span>{/if}<span class="break-all whitespace-pre-wrap">{terminal.input.substring(terminal.inputIndex + 1)}</span>
 </div>

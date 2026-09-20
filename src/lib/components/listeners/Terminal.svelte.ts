@@ -7,10 +7,11 @@ class Terminal implements KeyboardListener {
 	private historyIndex: number = 0;
 	private inputHistory = $state<string[]>([]);
 
-	public history = $state(new SvelteMap<string, string>());
+	public history = $state<SvelteMap<string, string>[]>([]);
 	private commands = $state(new SvelteMap<string, Command>());
 
 	public halt: boolean = false;
+	public prefix: string = "guest@TermOS % ";
 
 	constructor() {
 		kbManager.makeDefault(this);
@@ -18,10 +19,10 @@ class Terminal implements KeyboardListener {
 	}
 
 	public loadCommands(): void {
-		const modules = import.meta.glob<{default: Command}>("$lib/applications/*.ts", { eager: true });
+		const modules = import.meta.glob("$lib/applications/*.ts", { eager: true });
 
 		for (const path in modules) {
-			const command = modules[path].default;
+			const command = (modules[path] as any).app; // NOTE: All commands must export a const named 'app'
 			this.commands.set(command.name, command);
 		}
 	}
@@ -122,7 +123,9 @@ class Terminal implements KeyboardListener {
 			str = "\0";
 		}
 
-		this.history.set("text-light-fg dark:text-dark-fg", str);
+		this.history.push(new SvelteMap<string, string>([
+			["text-light-fg dark:text-dark-fg", str]
+		]));
 	}
 
 	public printerr(str: string = "\0"): void {
@@ -130,7 +133,9 @@ class Terminal implements KeyboardListener {
 			str = "\0";
 		}
 
-		this.history.set("text-red-500", str);
+		this.history.push(new SvelteMap<string, string>([
+			["text-red-500", str]
+		]));
 	}
 
 	public execute(): void {
@@ -138,7 +143,10 @@ class Terminal implements KeyboardListener {
 			this.inputHistory.push(this.input);
 		}
 
-		this.history.set("text-light-fg dark:text-dark-fg", this.input);
+		this.history.push(new SvelteMap<string, string>([
+			["text-light-fg dark:text-dark-fg", this.prefix + this.input]
+		]));
+
 		this.executeCommand(this.input);
 		this.input = "";
 	}
@@ -161,7 +169,7 @@ class Terminal implements KeyboardListener {
 				return false;
 			}
 		} else {
-			this.printerr(`TermOS: command not found: ${cmd}`);
+			this.printerr(`TermOS: command not found: ${cmdRaw}`);
 			return false;
 		}
 
