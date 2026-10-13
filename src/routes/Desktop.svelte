@@ -11,8 +11,9 @@
 <!-- The main interface for apps and terminal; each app has its own window and can be switch via keybinds (ctrl + `) -->
 
 <div class="flex-1 min-h-0 overflow-hidden w-full relative">
-	{#each desktop.apps as App}
+	{#if desktop.active}
+		{@const App = desktop.active[1]}
 		<App />
-	{/each}
+	{/if}
 </div>
 

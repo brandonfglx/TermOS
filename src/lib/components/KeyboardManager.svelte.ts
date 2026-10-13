@@ -2,6 +2,7 @@
 // Some keybinds are always attributed to a component (eg ctrl + ` for switching btwn apps)
 // 		otherwise, keys are directed to the "active" element - the "active" element is determined as the last component that calls for the keyboard manager to focus on it
 
+import { browser } from "$app/environment";
 import { terminal } from "./listeners/Terminal.svelte";
 
 export interface KeyboardListener {
@@ -17,17 +18,21 @@ class KeyboardManager implements KeyboardListener {
 	private listeners: KeyboardListener[] = [];
 
 	constructor() {
-		this.loadListeners();
+		if (browser) { // render on browser side only
+			this.loadListeners();
+		}
 	}
 
 	// Load all KeyboardListeners (must be placed inside $lib/components/listeners)
 	private loadListeners() {
 		const modules = import.meta.glob<{default: KeyboardListener}>("./listeners/*.svelte.ts", { eager: true });
 
-		for (const path in modules) {
-			const listener = modules[path].default;
+		for (const module of Object.values(modules)) {
+			const listener = module && typeof module === "object" && "default" in module ? module.default : module;
 
-			this.listeners.push(listener);
+			if (listener) {
+				this.listeners.push(listener);
+			}
 		}
 	}
 

@@ -7,8 +7,13 @@ class Terminal implements KeyboardListener {
 	private historyIndex: number = 0;
 	private inputHistory = $state<string[]>([]);
 
-	public history = $state<SvelteMap<string, string>[]>([]);
-	private commands = $state(new SvelteMap<string, Command>());
+	public history = $state<SvelteMap<string, string>[]>([
+		new SvelteMap<string, string>([
+			["text-light-fg dark:text-dark-fg", "TermOS v0.0.1 - enter \"help\" for more info"]
+		])
+	]);
+	public commands = $state(new SvelteMap<string, Command>());
+	public aliases = $state(new SvelteMap<string, string>());
 
 	public halt: boolean = false;
 	public prefix: string = "guest@TermOS % ";
@@ -52,7 +57,7 @@ class Terminal implements KeyboardListener {
 					this.input = this.input.substring(0, index) + this.input.substring(this.inputIndex);
 					this.inputIndex -= this.inputIndex - index;
 				} else if (this.inputIndex !== 0) {
-					this.input = this.input.substring(0, this.inputIndex - 1) + this.input.substring(this.inputIndex + 1);
+					this.input = this.input.substring(0, this.inputIndex - 1) + this.input.substring(this.inputIndex);
 					this.inputIndex--;
 				}
 				break;
@@ -115,7 +120,12 @@ class Terminal implements KeyboardListener {
 	}
 
 	public paste(event: ClipboardEvent): void {
-		
+		let data = event.clipboardData?.getData("text/plain");
+
+		if (data) {
+			this.input = this.input.substring(0, this.inputIndex) + data + this.input.substring(this.inputIndex);
+			this.inputIndex += data.length;
+		}
 	}
 
 	public println(str: string = "\0"): void {
@@ -136,6 +146,11 @@ class Terminal implements KeyboardListener {
 		this.history.push(new SvelteMap<string, string>([
 			["text-red-500", str]
 		]));
+	}
+
+	public clear(): void {
+		this.history = [];
+		this.inputHistory = [];
 	}
 
 	public execute(): void {
@@ -169,7 +184,14 @@ class Terminal implements KeyboardListener {
 				return false;
 			}
 		} else {
-			this.printerr(`TermOS: command not found: ${cmdRaw}`);
+			// Try using aliases
+			let alias = this.aliases.get(cmdRaw);
+
+			if (alias) {
+				return this.executeCommand(alias);
+			}
+
+			this.printerr(`terminal: command not found: ${cmdRaw}`);
 			return false;
 		}
 

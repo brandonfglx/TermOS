@@ -5,6 +5,7 @@
     import { kbManager } from "$lib/components/KeyboardManager.svelte";
 	import { onMount } from "svelte";
 
+    // All input handling should be managed by +page.svelte
 	onMount(() => {
 		document.addEventListener("keydown", (event: KeyboardEvent) => {
             kbManager.keydown(event);
@@ -13,6 +14,10 @@
 		document.addEventListener("keyup", (event: KeyboardEvent) => {
             kbManager.keyup(event);
 		});
+
+        document.addEventListener("paste", (event: ClipboardEvent) => {
+            kbManager.paste(event);
+        });
 	});
 </script>
 
