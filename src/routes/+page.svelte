@@ -1,2 +1,34 @@
-<h1>Welcome to SvelteKit</h1>
-<p>Visit <a href="https://svelte.dev/docs/kit">svelte.dev/docs/kit</a> to read the documentation</p>
+<script lang="ts">
+    import Desktop from "./Desktop.svelte";
+    import Header from "./Header.svelte";
+    import Terminal from "./Terminal.svelte";
+    import { kbManager } from "$lib/components/KeyboardManager.svelte";
+	import { onMount } from "svelte";
+
+    // All input handling should be managed by +page.svelte
+	onMount(() => {
+		document.addEventListener("keydown", (event: KeyboardEvent) => {
+            kbManager.keydown(event);
+		});
+
+		document.addEventListener("keyup", (event: KeyboardEvent) => {
+            kbManager.keyup(event);
+		});
+
+        document.addEventListener("paste", (event: ClipboardEvent) => {
+            kbManager.paste(event);
+        });
+	});
+</script>
+
+<svelte:head>
+	<title>TermOS</title>
+</svelte:head>
+
+<div class="flex flex-col h-lvh">
+    <Header />
+    <div class="w-full h-px bg-separator-light dark:bg-separator-dark"></div>
+    <Desktop />
+    <div class="w-full h-px bg-separator-light dark:bg-separator-dark"></div>
+    <Terminal />
+</div>
