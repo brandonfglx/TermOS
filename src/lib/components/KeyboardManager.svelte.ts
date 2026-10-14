@@ -12,7 +12,7 @@ export interface KeyboardListener {
 }
 
 // Ironically, the KeyboardManager is also a KeyboardListener, but has the power to direct controls
-class KeyboardManager implements KeyboardListener {
+export class KeyboardManager implements KeyboardListener {
 	private default: KeyboardListener | null = null;
 	private active: KeyboardListener | null = null;
 	private listeners: KeyboardListener[] = [];

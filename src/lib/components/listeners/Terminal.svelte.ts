@@ -20,6 +20,7 @@ class Terminal implements KeyboardListener {
 
 	constructor() {
 		kbManager.makeDefault(this);
+		kbManager.makeActive(this);
 		this.loadCommands();
 	}
 
@@ -27,8 +28,11 @@ class Terminal implements KeyboardListener {
 		const modules = import.meta.glob("$lib/applications/*.ts", { eager: true });
 
 		for (const path in modules) {
-			const command = (modules[path] as any).app; // NOTE: All commands must export a const named 'app'
+			const command = (modules[path] as any).app as Command; // NOTE: All commands must export a const named 'app'
 			this.commands.set(command.name, command);
+
+			// Call commands onLoad() to allow for performing actions once
+			command.onCmdLoad();
 		}
 	}
 
@@ -202,6 +206,7 @@ class Terminal implements KeyboardListener {
 export interface Command {
 	name: string,
 	desc: string,
+	onCmdLoad(): void, // Runs once when commands are loaded into memory
 	help(args?: string[]): string[],
 	parseArgs(args: string[]): Map<string, string>,
 	execute(args: Map<string, string>): void

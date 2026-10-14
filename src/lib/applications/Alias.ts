@@ -63,6 +63,11 @@ class Alias implements Command {
 		terminal.println(`alias: created alias \"${name}\" -> \"${cmd}\"`);
 	}
 	
+	// Command handlers
+
+	public onCmdLoad(): void {
+		
+	}
 }
 
 export const app = new Alias();

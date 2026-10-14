@@ -20,6 +20,12 @@ class Clear implements Command {
 	public execute(args: Map<string, string>): void {
 		terminal.clear();
 	}
+
+	// Command handlers
+
+	public onCmdLoad(): void {
+		
+	}
 }
 
 export const app = new Clear();

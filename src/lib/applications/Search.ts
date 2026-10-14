@@ -143,6 +143,8 @@ class Search implements Command {
 				case "rm":
 					if (tag && this.argMapping.delete(tag)) {
 						terminal.println(`search: successfully deleted: ${tag}`);
+					} else {
+						throw new Error(`search: invalid tag: ${tag}`);
 					}
 					break;
 				default:
@@ -161,6 +163,12 @@ class Search implements Command {
 				throw new Error(`search: invalid search engine: ${key}`);
 			}
 		});
+	}
+
+	// Command handlers
+
+	public onCmdLoad(): void {
+
 	}
 }
 

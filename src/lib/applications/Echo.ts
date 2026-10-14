@@ -23,6 +23,12 @@ class Echo implements Command {
 	public execute(args: Map<string, string>): void {
 		terminal.println(args.get("content"));
 	}
+
+	// Command handlers
+
+	public onCmdLoad(): void {
+		
+	}
 }
 
 export const app = new Echo();

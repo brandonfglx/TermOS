@@ -12,7 +12,7 @@
 
 <div class="flex-1 min-h-0 overflow-hidden w-full relative">
 	{#if desktop.active}
-		{@const App = desktop.active[1]}
+		{@const App = desktop.active[2]}
 		<App />
 	{/if}
 </div>

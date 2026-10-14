@@ -37,6 +37,12 @@ class Info implements Command {
 			`GPU: ${gpu}`
 		];
 	}
+
+	// Command handlers
+
+	public onCmdLoad(): void {
+
+	}
 }
 
 export const app = new Info();

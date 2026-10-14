@@ -1,6 +1,5 @@
 <script lang="ts">
     import { terminal } from "$lib/components/listeners/Terminal.svelte";
-	import { onMount } from "svelte";
 
 	let termApp: HTMLDivElement;
 

@@ -2,7 +2,7 @@
 	import { app } from "./WeatherApp";
 </script>
 
-<div class="h-full w-full overflow-y-auto flex flex-col">
+<div class="h-full w-full overflow-y-auto flex flex-row">
 	<div class="flex-2/12">
 		<p>sidebar</p>
 	</div>

@@ -1,3 +1,4 @@
+import type { Application } from "$lib/components/listeners/Desktop.svelte";
 import { terminal, type Command } from "$lib/components/listeners/Terminal.svelte";
 import { app as location, type LocationInfo } from "./Location";
 import { fetchWeatherApi } from "openmeteo";
@@ -14,7 +15,7 @@ interface WeatherParams {
 	forecast_days: number
 }
 
-class WeatherApp implements Command {
+class WeatherApp implements Command, Application {
 	public name: string = "weather";
 	public desc: string = "shows the weather";
 
@@ -208,6 +209,34 @@ class WeatherApp implements Command {
 		}
 
 		terminal.halt = false;
+	}
+
+	// Command handlers
+
+	public onCmdLoad(): void {
+
+	}
+
+	// Application handlers
+
+	public onAppLoad(): void {
+		
+	}
+
+	public onAppShow(): void {
+		
+	}
+
+	public keydown(event: KeyboardEvent): void {
+		
+	}
+
+	public keyup(event: KeyboardEvent): void {
+		
+	}
+
+	public paste(event: ClipboardEvent): void {
+		
 	}
 }
 

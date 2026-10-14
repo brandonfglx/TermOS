@@ -112,6 +112,12 @@ class Location implements Command {
 
 		terminal.halt = false;
 	}
+
+	// Command handlers
+
+	public onCmdLoad(): void {
+
+	}
 }
 
 export const app = new Location();

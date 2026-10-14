@@ -64,7 +64,12 @@ class Help implements Command {
 			}
 		}
 	}
-	
+
+	// Command handlers
+
+	public onCmdLoad(): void {
+
+	}
 }
 
 export const app = new Help();
