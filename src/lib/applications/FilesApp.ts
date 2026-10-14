@@ -1,10 +1,16 @@
 import { desktop, type Application } from "$lib/components/listeners/Desktop.svelte";
-import type { Command } from "$lib/components/listeners/Terminal.svelte";
+import { terminal, type Command } from "$lib/components/listeners/Terminal.svelte";
 import { File, Directory, fileSystem } from "$lib/components/FileSystem.svelte";
 
 class FilesApp implements Command, Application {
 	public name: string = "files";
 	public desc: string = "access files in a virtual file system and save it in LocalStorage";
+	public evalOnLoad: string[] = [
+		"alias touch files touch",
+		"alias mkdir files mkdir",
+		"alias cd files cd",
+		"alias rm files fm"
+	];
 
 	private cwd: Directory = fileSystem.root;
 
@@ -23,14 +29,14 @@ class FilesApp implements Command, Application {
 	}
 
 	public parseArgs(args: string[]): Map<string, string> {
-		// throw new Error("Method not implemented.");
-		return new Map<string, string>();
+		let map = new Map<string, string>();
+
+		return map;
 	}
 
 	// Allow users to create files using `files create [name].[ext]` or delete using `files delete [name].txt` -> create aliases for `touch [name].[ext]` and `rm [name].[ext]`
 	public execute(args: Map<string, string>): void {
-		console.log(desktop.switchTo(this));
-		// throw new Error("Method not implemented.");
+		throw new Error("Method not implemented.");
 	}
 
 	public touch(path: string, args: Map<string, string>): File | null {
@@ -134,17 +140,7 @@ class FilesApp implements Command, Application {
 		return path.substring(path.lastIndexOf("/") + 1);
 	}
 
-	// Command handlers
-
-	public onCmdLoad(): void {
-
-	}
-
 	// Application handlers
-
-	public onAppLoad(): void {
-		
-	}
 
 	public onAppShow(): void {
 		

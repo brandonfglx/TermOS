@@ -16,6 +16,7 @@ class Terminal implements KeyboardListener {
 	public aliases = $state(new SvelteMap<string, string>());
 
 	public halt: boolean = false;
+	public silent: boolean = false;
 	public prefix: string = "guest@TermOS % ";
 
 	constructor() {
@@ -30,10 +31,22 @@ class Terminal implements KeyboardListener {
 		for (const path in modules) {
 			const command = (modules[path] as any).app as Command; // NOTE: All commands must export a const named 'app'
 			this.commands.set(command.name, command);
-
-			// Call commands onLoad() to allow for performing actions once
-			command.onCmdLoad();
 		}
+	}
+
+	// This function is designed to only be called to declare when the terminal is first "loaded", which should be only called by TerminalApp's onMount()
+	// Since Vite is picky on dynamic imports, all cmds need to use built-in functions to evaluate
+	// onLoad() implies silent since we want to "hide" output to the user - only for hardcoded commands, not user .config evals
+	public onLoad(): void {
+		this.silent = true;
+
+		this.commands.forEach((cmd) => {
+			cmd.evalOnLoad.forEach((evalCmd) => {
+				this.executeCommand(evalCmd);
+			});
+		});
+
+		this.silent = false;
 	}
 
 	public keydown(event: KeyboardEvent): void {
@@ -69,7 +82,7 @@ class Terminal implements KeyboardListener {
 				this.historyIndex = Math.max(Math.min(this.historyIndex - 1, 0), -this.inputHistory.length);
 
 				this.input = this.inputHistory[this.inputHistory.length + this.historyIndex];
-				this.inputIndex = Math.max(0, Math.min(this.inputIndex, this.input.length));
+				this.inputIndex = this.input.length
 				break;
 			case "ArrowDown":
 				this.historyIndex = Math.max(Math.min(this.historyIndex + 1, 0), -this.inputHistory.length);
@@ -80,7 +93,7 @@ class Terminal implements KeyboardListener {
 					this.input = this.inputHistory[this.inputHistory.length + this.historyIndex];
 				}
 
-				this.inputIndex = Math.max(0, Math.min(this.inputIndex, this.input.length));
+				this.inputIndex = this.input.length
 				break;
 			case "ArrowLeft":
 				if (event.metaKey) {
@@ -133,6 +146,10 @@ class Terminal implements KeyboardListener {
 	}
 
 	public println(str: string = "\0"): void {
+		if (this.silent) {
+			return;
+		}
+
 		if (str.length === 0) {
 			str = "\0";
 		}
@@ -143,6 +160,10 @@ class Terminal implements KeyboardListener {
 	}
 
 	public printerr(str: string = "\0"): void {
+		if (this.silent) {
+			return;
+		}
+
 		if (str.length === 0) {
 			str = "\0";
 		}
@@ -206,7 +227,7 @@ class Terminal implements KeyboardListener {
 export interface Command {
 	name: string,
 	desc: string,
-	onCmdLoad(): void, // Runs once when commands are loaded into memory
+	evalOnLoad: string[]; // Commands to evaluate (calls terminal.executeCommand() for each initialized command once everything is loaded)
 	help(args?: string[]): string[],
 	parseArgs(args: string[]): Map<string, string>,
 	execute(args: Map<string, string>): void

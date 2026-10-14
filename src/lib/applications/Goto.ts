@@ -3,6 +3,7 @@ import { terminal, type Command } from "$lib/components/listeners/Terminal.svelt
 class Goto implements Command {
 	public name: string = "goto";
 	public desc: string = "go to a website on the world wide web";
+	public evalOnLoad: string[] = [];
 
 	public help(args?: string[]): string[] {
 		return [
@@ -32,12 +33,6 @@ class Goto implements Command {
 		} else {
 			terminal.printerr("goto: no url provided");
 		}
-	}
-
-	// Command handlers
-
-	public onCmdLoad(): void {
-
 	}
 }
 

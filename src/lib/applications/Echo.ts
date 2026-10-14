@@ -3,6 +3,7 @@ import { terminal, type Command } from "$lib/components/listeners/Terminal.svelt
 class Echo implements Command {
 	public name: string = "echo";
 	public desc: string = "outputs characters to stdout";
+	public evalOnLoad: string[] = [];
 
 	public help(args?: string[]): string[] {
 		return [
@@ -22,12 +23,6 @@ class Echo implements Command {
 
 	public execute(args: Map<string, string>): void {
 		terminal.println(args.get("content"));
-	}
-
-	// Command handlers
-
-	public onCmdLoad(): void {
-		
 	}
 }
 

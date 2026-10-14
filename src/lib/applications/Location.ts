@@ -16,6 +16,7 @@ export interface LocationInfo {
 class Location implements Command {
 	public name: string = "loc";
 	public desc: string = "prints info about the user's location or about the zip code"
+	public evalOnLoad: string[] = [];
 
 	public ipApi: string = "https://free.freeipapi.com/api/json";
 	public zipApi: string = "https://api.zippopotam.us/us";
@@ -111,12 +112,6 @@ class Location implements Command {
 		}
 
 		terminal.halt = false;
-	}
-
-	// Command handlers
-
-	public onCmdLoad(): void {
-
 	}
 }
 

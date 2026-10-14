@@ -4,6 +4,7 @@ import type { Command } from "$lib/components/listeners/Terminal.svelte";
 class TerminalApp implements Command, Application {
 	public name: string = "term";
 	public desc: string = "core terminal for TermOS";
+	public evalOnLoad: string[] = [];
 
 	public help(args?: string[]): string[] {
 		return [
@@ -21,17 +22,7 @@ class TerminalApp implements Command, Application {
 		throw new Error("Method not implemented.");
 	}
 
-	// Command handlers
-
-	public onCmdLoad(): void {
-
-	}
-
 	// Application handlers
-
-	public onAppLoad(): void {
-		
-	}
 
 	public onAppShow(): void {
 		

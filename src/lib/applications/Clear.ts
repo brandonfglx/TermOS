@@ -3,6 +3,7 @@ import { terminal, type Command } from "$lib/components/listeners/Terminal.svelt
 class Clear implements Command {
 	public name: string = "clear";
 	public desc: string = "clears the terminal";
+	public evalOnLoad: string[] = [];
 
 	public help(args?: string[]): string[] {
 		return [
@@ -19,12 +20,6 @@ class Clear implements Command {
 
 	public execute(args: Map<string, string>): void {
 		terminal.clear();
-	}
-
-	// Command handlers
-
-	public onCmdLoad(): void {
-		
 	}
 }
 

@@ -3,6 +3,7 @@ import { terminal, type Command } from "$lib/components/listeners/Terminal.svelt
 class Search implements Command {
 	public name: string = "search";
 	public desc: string = "search the web with any search engine";
+	public evalOnLoad: string[] = [];
 
 	public defaultFlag: string = "-g";
 
@@ -163,12 +164,6 @@ class Search implements Command {
 				throw new Error(`search: invalid search engine: ${key}`);
 			}
 		});
-	}
-
-	// Command handlers
-
-	public onCmdLoad(): void {
-
 	}
 }
 

@@ -18,6 +18,7 @@ interface WeatherParams {
 class WeatherApp implements Command, Application {
 	public name: string = "weather";
 	public desc: string = "shows the weather";
+	public evalOnLoad: string[] = [];
 
 	private weatherApi: string = "https://api.open-meteo.com/v1/forecast";
 
@@ -211,17 +212,7 @@ class WeatherApp implements Command, Application {
 		terminal.halt = false;
 	}
 
-	// Command handlers
-
-	public onCmdLoad(): void {
-
-	}
-
 	// Application handlers
-
-	public onAppLoad(): void {
-		
-	}
 
 	public onAppShow(): void {
 		

@@ -28,9 +28,6 @@ class Desktop implements KeyboardListener {
 
 			this.apps.set(tsApp.name, tsApp);
 			this.comps.set(tsApp.name, svObj.default);
-
-			// Call onLoad for all app
-			tsApp.onAppLoad();
 		}
 	}
 
@@ -95,7 +92,6 @@ class Desktop implements KeyboardListener {
 export interface Application {
 	name: string,
 	desc: string,
-	onAppLoad(): void, // Runs once when applications are loaded into memory
 	onAppShow(): void, // Runs every time when an application is shown (even when the previous app was itself)
 	keydown(event: KeyboardEvent): void;
 	keyup(event: KeyboardEvent): void;
