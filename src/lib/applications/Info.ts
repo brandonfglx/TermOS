@@ -3,6 +3,7 @@ import { terminal, type Command } from "$lib/components/listeners/Terminal.svelt
 class Info implements Command {
 	public name: string = "info";
 	public desc: string = "get device info";
+	public evalOnLoad: string[] = [];
 
 	public help(args?: string[]): string[] {
 		return [

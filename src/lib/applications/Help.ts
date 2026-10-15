@@ -3,6 +3,7 @@ import { terminal, type Command } from "$lib/components/listeners/Terminal.svelt
 class Help implements Command {
 	public name: string = "help";
 	public desc: string = "shows the help menu";
+	public evalOnLoad: string[] = [];
 	
 	public help(args?: string[]): string[] {
 		return [
@@ -64,7 +65,6 @@ class Help implements Command {
 			}
 		}
 	}
-	
 }
 
 export const app = new Help();

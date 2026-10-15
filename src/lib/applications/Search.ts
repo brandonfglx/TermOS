@@ -3,6 +3,7 @@ import { terminal, type Command } from "$lib/components/listeners/Terminal.svelt
 class Search implements Command {
 	public name: string = "search";
 	public desc: string = "search the web with any search engine";
+	public evalOnLoad: string[] = [];
 
 	public defaultFlag: string = "-g";
 
@@ -143,6 +144,8 @@ class Search implements Command {
 				case "rm":
 					if (tag && this.argMapping.delete(tag)) {
 						terminal.println(`search: successfully deleted: ${tag}`);
+					} else {
+						throw new Error(`search: invalid tag: ${tag}`);
 					}
 					break;
 				default:

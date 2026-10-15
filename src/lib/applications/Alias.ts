@@ -4,12 +4,13 @@ import { terminal, type Command } from "$lib/components/listeners/Terminal.svelt
 class Alias implements Command {
 	public name: string = "alias";
 	public desc: string = "toggles aliases to commands; aliases are used if a command doesn't exist";
+	public evalOnLoad: string[] = [];
 	public joiner: string = "_";
 	
 	public help(args?: string[]): string[] {
 		return [
 			`${this.name}: ${this.desc}`,
-			`\tUsage: ${this.name} [name] [cmd]`,
+			`\tUsage: ${this.name} [...args] [name] [cmd]`,
 			"\tArgs:",
 			`\t\tname: name of alias (cannot have spaces); if it already exists, the cmd is overwritten`,
 			"\t\tcmd: entire command with args to assign alias to; if empty, the alias is deleted",
@@ -62,7 +63,6 @@ class Alias implements Command {
 		terminal.aliases.set(name, cmd);
 		terminal.println(`alias: created alias \"${name}\" -> \"${cmd}\"`);
 	}
-	
 }
 
 export const app = new Alias();

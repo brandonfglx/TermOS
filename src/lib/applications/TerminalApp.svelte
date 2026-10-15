@@ -4,6 +4,10 @@
 
 	let termApp: HTMLDivElement;
 
+	onMount(() => {
+		terminal.onLoad();
+	})
+
 	$effect(() => {
 		terminal.history.length;
 
