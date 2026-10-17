@@ -5,8 +5,9 @@
 	let termApp: HTMLDivElement;
 
 	onMount(() => {
+		terminal.loadCommands();
 		terminal.onLoad();
-	})
+	});
 
 	$effect(() => {
 		terminal.history.length;

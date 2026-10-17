@@ -1,17 +1,21 @@
 export class File {
 	public name: string;
 	public parent: Directory;
-	public content: string | undefined; // OPT: Support non-text files such as music - store using LocalStorage or as bytes
+	private content: string | undefined; // OPT: Support non-text files such as music - store using LocalStorage or as bytes
+	public metadata: FileMetadata;
 
 	constructor(name: string, parent: Directory, content?: string) {
 		this.name = name;
 		this.parent = parent;
 		this.content = content;
+
+		// Construct metadata
+		this.metadata = new FileMetadata(this.parent.getPath() === fileSystem.root.name ? `${fileSystem.root.name}${this.name}` : `${this.parent.getPath()}/${this.name}`);
 	}
 
-	// Recursively gets the path of the current directory
-	public getPath(): string {
-		return `${this.parent.getPath()}/${this.name}`;
+	// TEMP: Eventually return bytes so that non-text data can be represented
+	public getContent(): string | undefined {
+		return this.content;
 	}
 }
 
@@ -20,12 +24,16 @@ export class Directory {
 	public parent: Directory | undefined;
 	public files: File[];
 	public dirs: Directory[];
+	public metadata: FileMetadata;
 
 	constructor(name: string, parent?: Directory) {
 		this.name = name;
 		this.parent = parent;
 		this.files = [];
 		this.dirs = [];
+
+		// Construct metadata
+		this.metadata = new FileMetadata(this.parent ? `${this.parent.getPath()}/${this.name}` : this.name);
 	}
 
 	// NOTE: All of the following methods "name" parameter is only the names of the files/dirs in this folder, you cannot pass in "dir1/file1".
@@ -126,6 +134,39 @@ export class Directory {
 		}
 
 		return `${this.parent.getPath()}/${this.name}`;
+	}
+}
+
+export class FileMetadata {
+	public readonly dateCreated: number = -1; // Dates in Unix Time to UTC (automatically convert to local time when displaying)
+	public dateModified: number = 0;
+	public dateAccessed: number = 0;
+	public readonly path: string = "";
+	public readonly extension: string = ""; // HTML style (aka image/jpeg, application/json, text/plain, etc.)
+	public size: number = 0; // In KB
+	public creator: string = "";
+	public permissions = 0; // Should be a valid 3-digit UNIX access number (0 - none, 1 - self, 2 - group, 4 - all)
+
+	// path should be the full path, with file name and extension
+	constructor(path: string) {
+		this.dateCreated = this.now();
+		this.path = path;
+		this.extension = path.substring(path.lastIndexOf("."));
+	}
+
+	public modified(): number {
+		this.dateModified = this.now();
+		return this.dateModified;
+	}
+
+	public accessed(): number {
+		this.dateAccessed = this.now();
+		return this.dateAccessed;
+	}
+
+	// Convenience method to get standardized unix time
+	public now(): number {
+		return Date.now();
 	}
 }
 

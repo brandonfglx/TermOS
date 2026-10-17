@@ -6,13 +6,16 @@ class FilesApp implements Command, Application {
 	public name: string = "files";
 	public desc: string = "access files in a virtual file system and save it in LocalStorage";
 	public evalOnLoad: string[] = [
+		"alias ls files",
 		"alias touch files touch",
 		"alias mkdir files mkdir",
 		"alias cd files cd",
-		"alias rm files fm"
+		"alias rm files rm"
 	];
 
 	private cwd: Directory = fileSystem.root;
+
+	public readonly EL_PER_LINE = 5;
 
 	public help(args?: string[]): string[] {
 		return [
@@ -24,6 +27,7 @@ class FilesApp implements Command, Application {
 			"\t\t\trm: remove a file",
 			"\t\t\tmkdir: create a directory",
 			"\t\t\tcd: change directory",
+			"\t\t\tIf no action is provided, lists all files and directories in the current working directory.",
 			`\t\targs: arguments for the action (list of available args can be found with \"help ${this.name} [action]\")`
 		];
 	}
@@ -31,12 +35,113 @@ class FilesApp implements Command, Application {
 	public parseArgs(args: string[]): Map<string, string> {
 		let map = new Map<string, string>();
 
+		if (args.length === 0) {
+			return map;
+		}
+
+		map.set("action", args[0]);
+
+		if (args.length < 2) {
+			return map;
+		}
+
+		let currFlag = "";
+		let currVal = "";
+
+		let rem = args.slice(1);
+		for (let i = 0; i < rem.length; i++) {
+			if (rem[i].startsWith("-")) {
+				if (currFlag.length !== 0) {
+					map.set(currFlag, currVal);
+				}
+
+				currFlag = rem[i];
+				currVal = "";
+			} else {
+				if (currVal.length === 0) {
+					currVal = rem[i];
+				} else {
+					currVal += ` ${rem[i]}`;
+				}
+			}
+		}
+
+		// NOTE: Since there is ambiguity on a flag and the "etc" values, the currVal is only kept to the flag if the flag needs a value
+		if (currFlag.length !== 0 && this.needsValue(currFlag)) {
+			map.set(currFlag, currVal);
+		} else {
+			if (currFlag.length !== 0) {
+				map.set(currFlag, "");
+			}
+
+			map.set("etc", currVal);
+		}
+
 		return map;
 	}
-
+ 
 	// Allow users to create files using `files create [name].[ext]` or delete using `files delete [name].txt` -> create aliases for `touch [name].[ext]` and `rm [name].[ext]`
 	public execute(args: Map<string, string>): void {
-		throw new Error("Method not implemented.");
+		if (args.size === 0) {
+			// Print directories (sorted alphabetically)
+			if (this.cwd.dirs.length > 0) {
+				let dirs = this.cwd.dirs.toSorted();
+				let maxLength = this.cwd.dirs.toSorted((a, b) => b.name.length - a.name.length)[0].name.length;
+
+				// Process in batches
+				for (let i = 0; i < Math.floor(dirs.length / this.EL_PER_LINE); i++) {
+					let line = "";
+
+					for (let j = i; j < this.EL_PER_LINE; j++) {
+						line += dirs[j].name.padEnd(maxLength + 1);
+					}
+
+					terminal.printf(line, {});
+				}
+
+				let rest = "";
+				for (let i = dirs.length - dirs.length % this.EL_PER_LINE; i < dirs.length; i++) {
+					rest += dirs[i].name.padEnd(maxLength + 1);
+				}
+				terminal.printf(rest, {});
+			}
+
+			// Print files (sorted alphabetically)
+			if (this.cwd.files.length > 0) {
+				let files = this.cwd.files.toSorted();
+			}
+
+			return;
+		}
+
+		let remArgs = new Map(args);
+		remArgs.delete("etc");
+
+		let etc = args.get("etc");
+		if (!etc) {
+			throw new Error("files: missing path");
+		}
+
+		// Calls appropriate action
+		switch (args.get("action")) {
+			case "touch":
+				this.touch(etc, remArgs);
+				break;
+			case "rm":
+				let succeded = this.rm(etc, remArgs);
+				if (!succeded) {
+					throw new Error(`files rm: failed to remove: ${etc}`);
+				}
+				break;
+			case "mkdir":
+				this.mkdir(etc, remArgs);
+				break;
+			case "cd":
+				this.cd(etc, remArgs);
+				break;
+			default:
+				throw new Error(`files: invalid action: ${args.get("action")}`);
+		}
 	}
 
 	public touch(path: string, args: Map<string, string>): File | null {
@@ -62,32 +167,68 @@ class FilesApp implements Command, Application {
 
 	// Removes the file (or directory when "-r" | "--recursive" is appended), searches both files and dirs, returns whether the rm succeded
 	public rm(path: string, args: Map<string, string>): boolean {
-		let dir = this.findParent(path);
-		let name = this.extractName(path);
+		if (path.startsWith(fileSystem.root.name)) {
+			let dir = this.findParent(path);
+			let name = this.extractName(path);
 
-		if (dir == null) {
+			if (dir == null) {
+				return false;
+			}
+
+			// Tries files first since it doesn't require -r
+			if (dir.hasFile(name)) {
+				return dir.removeFile(name);
+			} else if (dir.hasDir(name)) {
+				if (args.has("-r") || args.has("--recursive")) {
+					return dir.removeDir(name);
+				} else {
+					return false;
+				}
+			}
+
 			return false;
 		}
 
-		// Tries files first since it doesn't require -r
-		if (dir.hasFile(name)) {
-			return dir.removeFile(name);
-		} else if (args.has("--recursive") && dir.hasFile(name)) {
-			return dir.removeDir(name);
+		let name = this.extractName(path);
+
+		// Try removing from files first from cwd, then dirs
+		if (this.cwd.hasFile(name)) {
+			return this.cwd.removeFile(name);
+		} else if (this.cwd.hasDir(name)) {
+			if (args.has("-r") || args.has("--recursive")) {
+				return this.cwd.removeDir(name);
+			} else {
+				return false;
+			}
 		}
 
 		return false;
 	}
 
 	public mkdir(path: string, args: Map<string, string>): Directory | null {
-		let dir = this.findParent(path);
-		let name = this.extractName(path);
+		// Check whether the directory is being created from root
+		if (path.startsWith(fileSystem.root.name)) {
+			let dir = this.findParent(path);
+			let name = this.extractName(path);
 
-		if (dir == null) {
-			return null;
+			if (dir == null) {
+				return null;
+			}
+
+			return dir.createDir(name);
 		}
 
-		return dir.createDir(name);
+		// Creating relative to current directory
+		if (path.indexOf("/") === -1) {
+			return this.cwd.createDir(path);
+		}
+
+		// Creating relative to directory and is nested (requires -r)
+		if (args.has("-r")) {
+
+		}
+
+		return null;
 	}
 
 	public cd(path: string, args: Map<string, string>): Directory | null {
@@ -95,7 +236,12 @@ class FilesApp implements Command, Application {
 			return null;
 		}
 
-		return this.find(path, "d");
+		let dir = this.find(path, "d");
+		if (dir) {
+			this.cwd = dir;
+		}
+
+		return dir;
 	}
 
 	// Returns the correct directory (or parent directory of file) when user inputs a nested path (d = dir, f = file)
@@ -138,6 +284,14 @@ class FilesApp implements Command, Application {
 	// Extracts the name of the dir/file with this path.
 	public extractName(path: string): string {
 		return path.substring(path.lastIndexOf("/") + 1);
+	}
+
+	private needsValue(flag: string): boolean {
+		switch (flag) {
+
+			default:
+				return false;
+		}
 	}
 
 	// Application handlers

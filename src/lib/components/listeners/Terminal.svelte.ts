@@ -1,5 +1,6 @@
 import { SvelteMap } from "svelte/reactivity";
 import { kbManager, type KeyboardListener } from "../KeyboardManager.svelte";
+import { browser } from "$app/environment";
 
 class Terminal implements KeyboardListener {
 	public input: string = $state("");
@@ -22,14 +23,15 @@ class Terminal implements KeyboardListener {
 	constructor() {
 		kbManager.makeDefault(this);
 		kbManager.makeActive(this);
-		this.loadCommands();
 	}
 
+	// loadCommands() MUST be called to dynamically fetch all available commands and load them (in TerminalApp.svelte's onMount())
 	public loadCommands(): void {
 		const modules = import.meta.glob("$lib/applications/*.ts", { eager: true });
 
 		for (const path in modules) {
-			const command = (modules[path] as any).app as Command; // NOTE: All commands must export a const named 'app'
+			const command = (modules[path] as any).app as Command; // NOTE: All commands must export a const named 'app'; if there is an error here, its probably due to an issue with the object being instantiated before dependencies
+
 			this.commands.set(command.name, command);
 		}
 	}
@@ -173,6 +175,21 @@ class Terminal implements KeyboardListener {
 		]));
 	}
 
+	// TODO: Change text formatting to output to a flex/grid box with text inside. Then allow the user to decide the number of inner flex columns, and allow them to place inside at a value; only for printf
+	public printf(str: string = "\0", style: TerminalStyle): void {
+		if (this.silent) {
+			return;
+		}
+
+		if (str.length === 0) {
+			str = "\0";
+		}
+
+		this.history.push(new SvelteMap<string, string>([
+			[Object.values(style).filter(Boolean).join(" "), str]
+		]));
+	}
+
 	public clear(): void {
 		this.history = [];
 		this.inputHistory = [];
@@ -213,7 +230,7 @@ class Terminal implements KeyboardListener {
 			let alias = this.aliases.get(cmdRaw);
 
 			if (alias) {
-				return this.executeCommand(alias);
+				return this.executeCommand(`${alias} ${arr.slice(1).join(" ")}`);
 			}
 
 			this.printerr(`terminal: command not found: ${cmdRaw}`);
@@ -222,6 +239,16 @@ class Terminal implements KeyboardListener {
 
 		return true;
 	}
+}
+
+// TerminalStyle is the template for style interfaces as TailwindCSS; there is no guarantee of validity
+export interface TerminalStyle {
+	color?: string, // text-red-500, text-[hex-color]
+	font?: string, // font-[family | "sans" | "serif" | "mono"]
+	fontSize?: string, // text-[size] or text-[value]
+	fontWeight?: string, // font-[weight] or font-[value]
+	fontStyle?: "italic", // Enable italics
+	backgroundColor?: string, // bg-red-500, bg-[hex-color]
 }
 
 export interface Command {
