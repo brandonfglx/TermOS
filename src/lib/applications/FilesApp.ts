@@ -10,7 +10,9 @@ class FilesApp implements Command, Application {
 		"alias touch files touch",
 		"alias mkdir files mkdir",
 		"alias cd files cd",
-		"alias rm files rm"
+		"alias rm files rm",
+		"alias save files save",
+		"alias load files load",
 	];
 
 	private cwd: Directory = fileSystem.root;
@@ -107,8 +109,26 @@ class FilesApp implements Command, Application {
 			}
 
 			// Print files (sorted alphabetically)
-			if (this.cwd.files.length > 0) {
+			if (this.cwd.dirs.length > 0) {
 				let files = this.cwd.files.toSorted();
+				let maxLength = this.cwd.files.toSorted((a, b) => b.name.length - a.name.length)[0].name.length;
+
+				// Process in batches
+				for (let i = 0; i < Math.floor(files.length / this.EL_PER_LINE); i++) {
+					let line = "";
+
+					for (let j = i; j < this.EL_PER_LINE; j++) {
+						line += files[j].name.padEnd(maxLength + 1);
+					}
+
+					terminal.printf(line, {});
+				}
+
+				let rest = "";
+				for (let i = files.length - files.length % this.EL_PER_LINE; i < files.length; i++) {
+					rest += files[i].name.padEnd(maxLength + 1);
+				}
+				terminal.printf(rest, {});
 			}
 
 			return;
@@ -139,8 +159,28 @@ class FilesApp implements Command, Application {
 			case "cd":
 				this.cd(etc, remArgs);
 				break;
+			case "save":
+				this.save();
+				break;
+			case "load":
+				this.load();
+				break;
 			default:
 				throw new Error(`files: invalid action: ${args.get("action")}`);
+		}
+	}
+
+	// Saves the entire root directory to LocalStorage; returns true if succeeded, false otherwise
+	public save(): void {
+		fileSystem.save();
+	}
+
+	// Loads the entire root directory from LocalStorage; returns true if succeeded, false otherwise
+	public load(): void {
+		let result = fileSystem.load();
+
+		if (!result) {
+			throw new Error("files: cannot load root from localStorage");
 		}
 	}
 

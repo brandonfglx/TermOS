@@ -173,8 +173,26 @@ export class FileMetadata {
 class FileSystem {
 	public root: Directory;
 
+	public readonly LS_KEY = "fileSystem";
+
 	constructor() {
 		this.root = new Directory("/");
+	}
+
+	// Saves the root Directory as a JSON string in localStorage
+	public save(): void {
+		localStorage.setItem(this.LS_KEY, JSON.stringify(this.root));
+	}
+
+	// Loads the root Directory from localStorage and returns true; false otherwise
+	public load(): boolean {
+		let root = localStorage.getItem(this.LS_KEY);
+
+		if (root) {
+			this.root = JSON.parse(root) as Directory;
+		}
+
+		return Boolean(root);
 	}
 }
 
