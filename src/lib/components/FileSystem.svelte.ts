@@ -17,6 +17,11 @@ export class File {
 	public getContent(): string | undefined {
 		return this.content;
 	}
+
+	// TEMP: Eventually allow bytes as input so that non-text data can be represented
+	public setContent(content: string): void {
+		this.content = content;
+	}
 }
 
 export class Directory {
@@ -142,6 +147,7 @@ export class FileMetadata {
 	public dateModified: number = 0;
 	public dateAccessed: number = 0;
 	public readonly path: string = "";
+	public readonly nameWithoutExt: string = "";
 	public readonly extension: string = ""; // HTML style (aka image/jpeg, application/json, text/plain, etc.)
 	public size: number = 0; // In KB
 	public creator: string = "";
@@ -151,6 +157,7 @@ export class FileMetadata {
 	constructor(path: string) {
 		this.dateCreated = this.now();
 		this.path = path;
+		this.nameWithoutExt = path.substring(path.lastIndexOf("/") + 1, path.lastIndexOf("."));
 		this.extension = path.substring(path.lastIndexOf("."));
 	}
 

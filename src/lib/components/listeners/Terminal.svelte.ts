@@ -27,7 +27,7 @@ class Terminal implements KeyboardListener {
 
 	// loadCommands() MUST be called to dynamically fetch all available commands and load them (in TerminalApp.svelte's onMount())
 	public loadCommands(): void {
-		const modules = import.meta.glob("$lib/applications/*.ts", { eager: true });
+		const modules = import.meta.glob("$lib/applications/*.{ts,svelte.ts}", { eager: true });
 
 		for (const path in modules) {
 			const command = (modules[path] as any).app as Command; // NOTE: All commands must export a const named 'app'; if there is an error here, its probably due to an issue with the object being instantiated before dependencies
@@ -83,8 +83,13 @@ class Terminal implements KeyboardListener {
 			case "ArrowUp":
 				this.historyIndex = Math.max(Math.min(this.historyIndex - 1, 0), -this.inputHistory.length);
 
-				this.input = this.inputHistory[this.inputHistory.length + this.historyIndex];
-				this.inputIndex = this.input.length
+				let temp = this.inputHistory[this.inputHistory.length + this.historyIndex];
+				if (!temp) {
+					break;
+				}
+
+				this.input = temp;
+				this.inputIndex = this.input.length;
 				break;
 			case "ArrowDown":
 				this.historyIndex = Math.max(Math.min(this.historyIndex + 1, 0), -this.inputHistory.length);
@@ -95,7 +100,7 @@ class Terminal implements KeyboardListener {
 					this.input = this.inputHistory[this.inputHistory.length + this.historyIndex];
 				}
 
-				this.inputIndex = this.input.length
+				this.inputIndex = this.input.length;
 				break;
 			case "ArrowLeft":
 				if (event.metaKey) {

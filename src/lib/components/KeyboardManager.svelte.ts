@@ -2,9 +2,6 @@
 // Some keybinds are always attributed to a component (eg ctrl + ` for switching btwn apps)
 // 		otherwise, keys are directed to the "active" element - the "active" element is determined as the last component that calls for the keyboard manager to focus on it
 
-import { browser } from "$app/environment";
-import { terminal } from "./listeners/Terminal.svelte";
-
 export interface KeyboardListener {
 	keydown(event: KeyboardEvent): void;
 	keyup(event: KeyboardEvent): void;
@@ -15,26 +12,6 @@ export interface KeyboardListener {
 export class KeyboardManager implements KeyboardListener {
 	private default: KeyboardListener | null = null;
 	private active: KeyboardListener | null = null;
-	private listeners: KeyboardListener[] = [];
-
-	constructor() {
-		if (browser) { // render on browser side only
-			this.loadListeners();
-		}
-	}
-
-	// Load all KeyboardListeners (must be placed inside $lib/components/listeners)
-	private loadListeners() {
-		const modules = import.meta.glob<{default: KeyboardListener}>("./listeners/*.svelte.ts", { eager: true });
-
-		for (const module of Object.values(modules)) {
-			const listener = module && typeof module === "object" && "default" in module ? module.default : module;
-
-			if (listener) {
-				this.listeners.push(listener);
-			}
-		}
-	}
 
 	public makeDefault(listener: KeyboardListener) {
 		this.default = listener;
@@ -52,7 +29,7 @@ export class KeyboardManager implements KeyboardListener {
 		} else if (this.default) {
 			this.default.keydown(event);
 		} else {
-			terminal.printerr(`KeyboardManager: no KeyboardListener found for ${event.key} (keydown)`);
+			throw new Error(`KeyboardManager: no KeyboardListener found for ${event.key} (keydown)`);
 		}
 	}
 
@@ -64,7 +41,7 @@ export class KeyboardManager implements KeyboardListener {
 		} else if (this.default) {
 			this.default.keyup(event);
 		} else {
-			terminal.printerr(`KeyboardManager: no KeyboardListener found for ${event.key} (keyup)`);
+			throw new Error(`KeyboardManager: no KeyboardListener found for ${event.key} (keyup)`);
 		}
 	}
 
@@ -74,7 +51,7 @@ export class KeyboardManager implements KeyboardListener {
 		} else if (this.default) {
 			this.default.paste(event);
 		} else {
-			terminal.printerr(`KeyboardManager: no KeyboardListener found for ${event.clipboardData} (paste)`);
+			throw new Error(`KeyboardManager: no KeyboardListener found for ${event.clipboardData} (paste)`);
 		}
 	}
 

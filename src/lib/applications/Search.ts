@@ -24,12 +24,9 @@ class Search implements Command {
 	public help(args?: string[]): string[] {
 		let help = [
 			`${this.name}: ${this.desc}`,
-			`\tUsage: ${this.name} -- [args] | [tag] [query]`,
+			`\tUsage: ${this.name} [tag] [query]`,
+			`\t       ${this.name} -- [args]`,
 			"\tArgs:",
-			`\t\targs: args to configure ${this.name}`,
-			"\t\t\tdefault /t [tag]: change default search tag",
-			"\t\t\tset /t [tag] /q [query]: sets the search engine with the given tag",
-			"\t\t\trm /t [tag]: removes the search engine with the given tag",
 			"\t\ttag: tag of site to search",
 			"\t\tquery: text to search",
 		];
@@ -37,6 +34,13 @@ class Search implements Command {
 		this.argMapping.forEach((val, key) => {
 			help.push(`\t\t\t${key}: ${val}`);
 		});
+
+		help.push(
+			`\t\targs: args to configure ${this.name}`,
+			"\t\t\tdefault /t [tag]: change default search tag",
+			"\t\t\tset /t [tag] /q [query]: sets the search engine with the given tag",
+			"\t\t\trm /t [tag]: removes the search engine with the given tag",
+		);
 
 		return help;
 	}
