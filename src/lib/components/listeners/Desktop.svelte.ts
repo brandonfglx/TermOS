@@ -1,5 +1,5 @@
 import type { Component } from "svelte";
-import type { KeyboardListener } from "../KeyboardManager.svelte";
+import { kbManager, type KeyboardListener } from "../KeyboardManager.svelte";
 import { SvelteMap } from "svelte/reactivity";
 
 class Desktop implements KeyboardListener {
@@ -12,7 +12,7 @@ class Desktop implements KeyboardListener {
 
 	public loadApplications(): void {
 		const svModules = import.meta.glob<{default: Component}>("$lib/applications/*App.svelte", { eager: true });
-		const tsModules = import.meta.glob<any>("$lib/applications/*App.ts", { eager: true });
+		const tsModules = import.meta.glob<any>("$lib/applications/*App.{ts,svelte.ts}", { eager: true });
 
 		const svEntries = Object.entries(svModules);
 		const tsEntries = Object.entries(tsModules);
@@ -31,17 +31,36 @@ class Desktop implements KeyboardListener {
 		}
 	}
 
+	// Switches to the given application and returns true; returns false if the app doesn't have a corresponding Component
 	public switchTo(app: Application): boolean {
 		let comp = this.comps.get(app.name);
 
 		if (comp) {
+			this.active?.[1].onAppHide();
+
 			this.active = [app.name, app, comp];
 			app.onAppShow();
+
+			// Automatically make kbManager direct key events to application
+			kbManager.makeActive(app);
 
 			return true;
 		}
 
 		return false;
+	}
+
+	// Checks whether the given application is currently the active applicaiton
+	public isActive(app: Application, strict: boolean = false): boolean {		
+		if (app.name !== this.active?.[0]) {
+			return false;
+		}
+
+		if (strict && app !== this.active?.[1]) {
+			return false;
+		}
+
+		return true;
 	}
 
 	public getApps(): SvelteMap<string, Application> {
@@ -92,7 +111,8 @@ class Desktop implements KeyboardListener {
 export interface Application {
 	name: string,
 	desc: string,
-	onAppShow(): void, // Runs every time when an application is shown (even when the previous app was itself)
+	onAppShow(): void, // Runs every time an application is shown (even when the previous app was itself)
+	onAppHide(): void, // Runs every time an applicaiton is hidden/closed
 	keydown(event: KeyboardEvent): void;
 	keyup(event: KeyboardEvent): void;
 	paste(event: ClipboardEvent): void;

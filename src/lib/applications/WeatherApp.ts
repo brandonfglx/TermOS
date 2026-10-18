@@ -218,6 +218,10 @@ class WeatherApp implements Command, Application {
 		
 	}
 
+	public onAppHide(): void {
+		
+	}
+
 	public keydown(event: KeyboardEvent): void {
 		
 	}
