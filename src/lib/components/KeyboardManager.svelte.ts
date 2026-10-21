@@ -10,8 +10,8 @@ export interface KeyboardListener {
 
 // Ironically, the KeyboardManager is also a KeyboardListener, but has the power to direct controls
 export class KeyboardManager implements KeyboardListener {
-	private default: KeyboardListener | null = null;
-	private active: KeyboardListener | null = null;
+	private default: KeyboardListener | null = $state(null);
+	private active: KeyboardListener | null = $state(null);
 
 	public makeDefault(listener: KeyboardListener) {
 		this.default = listener;
@@ -70,6 +70,10 @@ export class KeyboardManager implements KeyboardListener {
 					event.preventDefault();
 				}
 		}
+	}
+
+	public getActive(): KeyboardListener | null {
+		return this.active;
 	}
 }
 

@@ -1,27 +1,57 @@
 import { terminal, type Command } from "$lib/components/listeners/Terminal.svelte";
+import { app as files } from "$lib/applications/FilesApp";
 
 class Info implements Command {
 	public name: string = "info";
-	public desc: string = "get device info";
+	public desc: string = "get info about the current device or a file's metadata";
 	public evalOnLoad: string[] = [];
 
 	public help(args?: string[]): string[] {
 		return [
 			`${this.name}: ${this.desc}`,
-			`\tUsage: ${this.name}`
+			`\tUsage: ${this.name}`,
+			`\t       ${this.name} [filePath]`,
+			"\tArgs:",
+			"\t\tfilePath: path to file to inspect the metadata for"
 		];
 	}
 
 	public parseArgs(args: string[]): Map<string, string> {
 		let map = new Map<string, string>();
 
+		let filePath = args[0];
+		if (filePath) {
+			map.set("filePath", filePath);
+		}
+
 		return map;
 	}
 
 	public async execute(args: Map<string, string>): Promise<void> {
-		(await this.getInfo()).forEach((str) => {
-			terminal.println(str);
-		});
+		if (args.size === 0) {
+			(await this.getInfo()).forEach((str) => {
+				terminal.println(str);
+			});
+			return;
+		}
+
+		let filePath = args.get("filePath");
+		if (!filePath) {
+			terminal.printerr("info: no file path provided");
+			return;
+		}
+
+		// Parse file path for validity
+		let dir = files.find(filePath, "f");
+		if (!dir) {
+			terminal.printerr(`info: invalid file path: ${filePath}`);
+			return;
+		}
+
+		let file = dir.getFile(files.extractName(filePath))!;
+		terminal.println(JSON.stringify(file.metadata, null, 2));
+
+		file.metadata.dateAccessed = file.metadata.now();
 	}
 
 	private async getInfo(): Promise<string[]> {

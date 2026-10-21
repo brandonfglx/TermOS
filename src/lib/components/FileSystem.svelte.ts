@@ -21,6 +21,16 @@ export class File {
 	// TEMP: Eventually allow bytes as input so that non-text data can be represented
 	public setContent(content: string): void {
 		this.content = content;
+
+		// Update metadata
+		this.metadata.dateModified = this.metadata.now();
+		this.metadata.dateAccessed = this.metadata.now();
+		this.metadata.size = this.getSize();
+	}
+
+	// Calculates the size of the file in bytes
+	public getSize(): number {
+		return new TextEncoder().encode(this.content).length;
 	}
 }
 
@@ -135,7 +145,8 @@ export class Directory {
 	// Recursively gets the path of the current directory
 	public getPath(): string {
 		if (!this.parent) {
-			return this.name;
+			let trailing = this.name.lastIndexOf("/");
+			return this.name.slice(0, trailing) + this.name.slice(trailing + 1);
 		}
 
 		return `${this.parent.getPath()}/${this.name}`;
@@ -149,9 +160,7 @@ export class FileMetadata {
 	public readonly path: string = "";
 	public readonly nameWithoutExt: string = "";
 	public readonly extension: string = ""; // HTML style (aka image/jpeg, application/json, text/plain, etc.)
-	public size: number = 0; // In KB
-	public creator: string = "";
-	public permissions = 0; // Should be a valid 3-digit UNIX access number (0 - none, 1 - self, 2 - group, 4 - all)
+	public size: number = 0; // In bytes
 
 	// path should be the full path, with file name and extension
 	constructor(path: string) {

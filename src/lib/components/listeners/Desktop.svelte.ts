@@ -6,6 +6,7 @@ class Desktop implements KeyboardListener {
 	private apps = $state(new SvelteMap<string, Application>());
 	private comps = $state(new SvelteMap<string, Component>());
 	public active = $state<[string, Application, Component] | null>(null); // Application name paired with actual Component (HTML)
+	public history = $state<Application[]>([]);
 	private default: string = "TerminalApp"; // Initially loaded app, finds by matching name
 	private switching = $state(false);
 	private switchIndex = $state(0);
@@ -24,6 +25,7 @@ class Desktop implements KeyboardListener {
 
 			if (svPath.indexOf(this.default) !== -1 && tsPath.indexOf(this.default) !== -1) {
 				this.active = [tsApp.name, tsApp, svObj.default];
+				this.history.push(tsApp);
 			}
 
 			this.apps.set(tsApp.name, tsApp);
@@ -44,7 +46,25 @@ class Desktop implements KeyboardListener {
 			// Automatically make kbManager direct key events to application
 			kbManager.makeActive(app);
 
+			this.history.push(app);
+
 			return true;
+		}
+
+		return false;
+	}
+
+	// Quits the current application and reverts to the last active application, if there is no history, returns to the default application
+	// Returns true if it returned to the previous application; false otherwise
+	public quit(): boolean {
+		let prev = this.history.at(-2);
+		if (prev) {
+			return this.switchTo(prev);
+		}
+
+		let def = this.apps.get(this.default);
+		if (def) {
+			return this.switchTo(def);
 		}
 
 		return false;
