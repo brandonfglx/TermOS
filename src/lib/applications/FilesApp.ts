@@ -204,10 +204,14 @@ class FilesApp implements Command, Application {
 	}
 
 	public touch(path: string, args: Map<string, string>): File | null {
-		let dir = this.findParent(path);
+		let dir = this.cwd;
 
-		if (dir == null) {
-			return null;
+		if (path.indexOf("/") !== -1) {
+			let tempDir = this.findParent(path);
+			if (tempDir == null) {
+				return null;
+			}
+			dir = tempDir;
 		}
 		
 		let name = this.extractName(path);
@@ -281,6 +285,9 @@ class FilesApp implements Command, Application {
 		}
 
 		terminal.println(file.getContent());
+		
+		// Update metadata
+		file.metadata.dateAccessed = file.metadata.now();
 	}
 
 	public mkdir(path: string, args: Map<string, string>): Directory | null {
@@ -328,11 +335,21 @@ class FilesApp implements Command, Application {
 		return null;
 	}
 
+	// TODO: Distinguish between parent (using ..) and self (using .)
 	public cd(path: string, args: Map<string, string>): Directory | null {
-		if (this.find(path, "f") != null) {
+		if (path.indexOf("/") !== -1) {
+			// Convert path to absolute if neccessary
+			if (!path.startsWith(fileSystem.root.name)) {
+				path = fileSystem.root.name.slice(0, fileSystem.root.name.lastIndexOf("/")) + path;
+			}
+		}
+
+		// Return "error" if path points to a file
+		if (this.find(path, "f") !== null) {
 			return null;
 		}
 
+		// Move to path if possiple
 		let dir = this.find(path, "d");
 		if (dir) {
 			this.cwd = dir;

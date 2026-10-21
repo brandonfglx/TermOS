@@ -12,7 +12,11 @@ class TextApp implements Command, Application {
 	private file: File | null = null;
 
 	// Each line is represented as an element of the array
-	public content = $state<string[]>([]);
+	public content = $state("");
+	public numLines = $derived(this.content.split("\n").length);
+
+	public lineNumArea: HTMLDivElement | undefined;
+	public textArea: HTMLTextAreaElement | undefined;
 
 	public help(args?: string[]): string[] {
 		return [
@@ -98,6 +102,9 @@ class TextApp implements Command, Application {
 
 		// Load GUI
 		if (args.size === 1) {
+			// Load information into content
+			this.content = this.file.getContent() ?? "";
+
 			desktop.switchTo(this);
 		}
 
@@ -153,9 +160,22 @@ class TextApp implements Command, Application {
 
 	// Application-specific functions
 
+	// Sync scrolling between line no. and textarea
+	public handleScroll(): void {
+		if (this.lineNumArea && this.textArea) {
+			this.lineNumArea.scrollTop = this.textArea.scrollTop;
+		}
+	}
+
 	// Saves file content stored in app to file
-	public save(): void {
-		
+	public save(): boolean {
+		let file = this.file;
+		if (file) {
+			file.setContent(this.content);
+			return true;
+		}
+
+		return false;
 	}
 
 	public onAppShow(): void {
@@ -167,7 +187,21 @@ class TextApp implements Command, Application {
 	}
 	
 	public keydown(event: KeyboardEvent): void {
-		
+		switch (event.key) {
+			case "s":
+				if (event.ctrlKey) {
+					this.save();
+				}
+				break;
+			case "q":
+			case "c":
+				if (event.ctrlKey) {
+					desktop.quit();
+				}
+				break;
+			default:
+				break;
+		}
 	}
 	
 	public keyup(event: KeyboardEvent): void {
