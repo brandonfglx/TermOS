@@ -6,6 +6,8 @@ export interface KeyboardListener {
 	keydown(event: KeyboardEvent): void;
 	keyup(event: KeyboardEvent): void;
 	paste(event: ClipboardEvent): void;
+	onFocusGain(): void;
+	onFocusLost(): void;
 }
 
 // Ironically, the KeyboardManager is also a KeyboardListener, but has the power to direct controls
@@ -18,10 +20,20 @@ export class KeyboardManager implements KeyboardListener {
 	}
 
 	public makeActive(listener: KeyboardListener) {
+		this.active?.onFocusLost();
 		this.active = listener;
+		this.active.onFocusGain();
 	}
 
 	public keydown(event: KeyboardEvent): void {
+		let target = event.target as HTMLElement | null;
+		let isEditable = !!target && (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target.isContentEditable);
+
+		// Prevent HTML inputs being blocked from receiving normal characters like "/" or "'"
+		if (isEditable) {
+			return;
+		}
+
 		this.prevent(event);
 
 		if (this.active) {
@@ -55,6 +67,9 @@ export class KeyboardManager implements KeyboardListener {
 		}
 	}
 
+	public onFocusGain(): void {}
+	public onFocusLost(): void {}
+
 	// Prevents the browser from overriding key actions for terminal (only tested with Firefox)
 	public prevent(event: KeyboardEvent): void {
 		switch (event.key) {
@@ -70,6 +85,10 @@ export class KeyboardManager implements KeyboardListener {
 					event.preventDefault();
 				}
 		}
+	}
+
+	public getDefault(): KeyboardListener | null {
+		return this.default;
 	}
 
 	public getActive(): KeyboardListener | null {

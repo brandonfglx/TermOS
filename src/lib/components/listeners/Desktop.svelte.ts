@@ -41,12 +41,12 @@ class Desktop implements KeyboardListener {
 			this.active?.[1].onAppHide();
 
 			this.active = [app.name, app, comp];
-			app.onAppShow();
 
 			// Automatically make kbManager direct key events to application
 			kbManager.makeActive(app);
-
 			this.history.push(app);
+
+			app.onAppShow();
 
 			return true;
 		}
@@ -126,6 +126,14 @@ class Desktop implements KeyboardListener {
 			this.active[1].paste(event);
 		}
 	}
+
+	public onFocusGain(): void {
+		
+	}
+
+	public onFocusLost(): void {
+		
+	}
 }
 
 export interface Application {
@@ -136,6 +144,8 @@ export interface Application {
 	keydown(event: KeyboardEvent): void;
 	keyup(event: KeyboardEvent): void;
 	paste(event: ClipboardEvent): void;
+	onFocusGain(): void;
+	onFocusLost(): void;
 }
 
 export const desktop = new Desktop();

@@ -1,4 +1,4 @@
-import { desktop, type Application } from "$lib/components/listeners/Desktop.svelte";
+import { type Application } from "$lib/components/listeners/Desktop.svelte";
 import { terminal, type Command } from "$lib/components/listeners/Terminal.svelte";
 import { File, Directory, fileSystem } from "$lib/components/FileSystem.svelte";
 
@@ -19,7 +19,10 @@ class FilesApp implements Command, Application {
 
 	private cwd: Directory = fileSystem.root;
 
-	public readonly EL_PER_LINE = 5;
+	public readonly EL_PER_LINE = 6;
+
+	// Application properties
+	public navPath: string = this.cwd.getPath();
 
 	public help(args?: string[]): string[] {
 		return [
@@ -90,52 +93,27 @@ class FilesApp implements Command, Application {
  
 	// Allow users to create files using `files create [name].[ext]` or delete using `files delete [name].txt` -> create aliases for `touch [name].[ext]` and `rm [name].[ext]`
 	public execute(args: Map<string, string>): void {
-		if (args.size === 0) {
-			// Print directories (sorted alphabetically)
-			if (this.cwd.dirs.length > 0) {
-				let dirs = this.cwd.dirs.toSorted();
-				let maxLength = this.cwd.dirs.toSorted((a, b) => b.name.length - a.name.length)[0].name.length;
+		if (args.size === 0 && this.cwd.getAll().length > 0) {
+			let arr = this.cwd.getAll();
+			let maxLength = arr.toSorted((a, b) => b.name.length - a.name.length)[0].name.length;
 
-				// Process in batches
-				for (let i = 0; i < Math.floor(dirs.length / this.EL_PER_LINE); i++) {
-					let line = "";
+			// Process in batches
+			for (let i = 0; i < Math.floor(arr.length / this.EL_PER_LINE); i++) {
+				let line = "";
 
-					for (let j = i; j < this.EL_PER_LINE; j++) {
-						line += dirs[j].name.padEnd(maxLength + 1);
-					}
-
-					terminal.printf(line, {});
+				for (let j = i; j < this.EL_PER_LINE; j++) {
+					line += arr[j].name.padEnd(maxLength + 1);
 				}
 
-				let rest = "";
-				for (let i = dirs.length - dirs.length % this.EL_PER_LINE; i < dirs.length; i++) {
-					rest += dirs[i].name.padEnd(maxLength + 1);
-				}
-				terminal.printf(rest, {});
+				terminal.printf(line, {});
 			}
 
-			// Print files (sorted alphabetically)
-			if (this.cwd.files.length > 0) {
-				let files = this.cwd.files.toSorted();
-				let maxLength = this.cwd.files.toSorted((a, b) => b.name.length - a.name.length)[0].name.length;
-
-				// Process in batches
-				for (let i = 0; i < Math.floor(files.length / this.EL_PER_LINE); i++) {
-					let line = "";
-
-					for (let j = i; j < this.EL_PER_LINE; j++) {
-						line += files[j].name.padEnd(maxLength + 1);
-					}
-
-					terminal.printf(line, {});
-				}
-
-				let rest = "";
-				for (let i = files.length - files.length % this.EL_PER_LINE; i < files.length; i++) {
-					rest += files[i].name.padEnd(maxLength + 1);
-				}
-				terminal.printf(rest, {});
+			// Add the remaining elements (final line)
+			let rest = "";
+			for (let i = arr.length - arr.length % this.EL_PER_LINE; i < arr.length; i++) {
+				rest += arr[i].name.padEnd(maxLength + 1);
 			}
+			terminal.printf(rest, {});
 
 			return;
 		}
@@ -335,7 +313,7 @@ class FilesApp implements Command, Application {
 		return null;
 	}
 
-	// TODO: Distinguish between parent (using ..) and self (using .)
+	// TODO: Distinguish between parent (using ..) and self (using .) - have a separate method to parse ., .., and ~ with respective full file paths
 	public cd(path: string, args: Map<string, string>): Directory | null {
 		if (path.indexOf("/") !== -1) {
 			// Convert path to absolute if neccessary
@@ -392,6 +370,40 @@ class FilesApp implements Command, Application {
 		}
 
 		return dir;
+	}
+
+	// Parses the provided path, replacing relative file paths with absolute ones
+	// NOTE: This method doesn't ensure path validity, yet...
+	private parsePath(path: string): string {
+		// Replace ~ with root path if at beginning
+		if (path.startsWith("~")) {
+			path = fileSystem.root.name + path.substring(1);
+		}
+
+		// Replace . to cwd if at beginning and if not part of a "hidden" file/dir
+		let next = path.at(1);
+		if (path.startsWith(".") && next && next === "/") {
+			path = this.cwd.name + path.substring(1);
+		}
+
+		// Parsing .. - make it relate to the previous folder
+		// This requires parsing some-dir/../../ etc. to the end
+		if (path.indexOf("..") !== -1) {
+			let ref = this.cwd;
+			let before = path.substring(0, path.indexOf(".."));
+			if (before.length > 0) {
+				let temp = this.find(before, "d");
+				if (!temp) {
+					throw new Error(`files: parsePath: couldn't find directory at: ${before}`);
+				}
+
+				ref = temp;
+			}
+
+			return this.parsePath(ref.parent?.getPath() + path.substring(path.indexOf("..") + 1));
+		}
+
+		return path;
 	}
 
 	// Finds the parent of the specified dir or file, or null if the dir/file doesn't exist when parsing
@@ -451,6 +463,14 @@ class FilesApp implements Command, Application {
 	}
 
 	public paste(event: ClipboardEvent): void {
+		
+	}
+
+	public onFocusGain(): void {
+		
+	}
+
+	public onFocusLost(): void {
 		
 	}
 }
