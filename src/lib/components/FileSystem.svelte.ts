@@ -151,6 +151,14 @@ export class Directory {
 
 		return `${this.parent.getPath()}/${this.name}`;
 	}
+
+	// Returns all files and dirs in one union array, sorted alphabetically by name
+	public getAll(): (Directory | File)[] {
+		let arr: (Directory | File)[] = [];
+		arr = arr.concat(this.dirs).concat(this.files);
+
+		return arr.sort((a, b) => a.name.localeCompare(b.name));
+	}
 }
 
 export class FileMetadata {

@@ -1,3 +1,4 @@
+import { kbManager } from "$lib/components/KeyboardManager.svelte";
 import { desktop, type Application } from "$lib/components/listeners/Desktop.svelte";
 import { terminal, type Command } from "$lib/components/listeners/Terminal.svelte";
 
@@ -35,7 +36,7 @@ class TerminalApp implements Command, Application {
 	// Application handlers
 
 	public onAppShow(): void {
-		
+		kbManager.makeActive(terminal);
 	}
 
 	public onAppHide(): void {
@@ -53,6 +54,14 @@ class TerminalApp implements Command, Application {
 
 	public paste(event: ClipboardEvent): void {
 		terminal.paste(event);
+	}
+
+	public onFocusGain(): void {
+		kbManager.makeActive(terminal);
+	}
+
+	public onFocusLost(): void {
+		
 	}
 }
 

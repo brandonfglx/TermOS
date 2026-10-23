@@ -13,6 +13,6 @@
 		bind:value={text.content}
 		onscroll={() => text.handleScroll()}
 		spellcheck="false"
-		class="flex-1 bg-[#101010] p-2 m-0 border-none resize-none outline-none focus:outline-none focus:ring-0 whitespace-pre overflow-auto overscroll-contain"
+		class="flex-1 bg-[#e0e0e0] dark:bg-[#101010] p-2 m-0 border-none resize-none outline-none focus:outline-none focus:ring-0 whitespace-pre overflow-auto overscroll-contain"
 	></textarea>
 </div>

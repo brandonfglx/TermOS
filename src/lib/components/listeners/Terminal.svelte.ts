@@ -1,6 +1,5 @@
 import { SvelteMap } from "svelte/reactivity";
 import { kbManager, type KeyboardListener } from "../KeyboardManager.svelte";
-import { browser } from "$app/environment";
 
 class Terminal implements KeyboardListener {
 	public input: string = $state("");
@@ -151,6 +150,9 @@ class Terminal implements KeyboardListener {
 			this.inputIndex += data.length;
 		}
 	}
+
+	public onFocusGain(): void {}
+	public onFocusLost(): void {}
 
 	public println(str: string = "\0"): void {
 		if (this.silent) {

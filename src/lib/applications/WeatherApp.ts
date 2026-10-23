@@ -233,6 +233,14 @@ class WeatherApp implements Command, Application {
 	public paste(event: ClipboardEvent): void {
 		
 	}
+
+	public onFocusGain(): void {
+		
+	}
+
+	public onFocusLost(): void {
+		
+	}
 }
 
 export const app = new WeatherApp();

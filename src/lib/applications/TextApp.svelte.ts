@@ -212,6 +212,14 @@ class TextApp implements Command, Application {
 		
 	}
 
+	public onFocusGain(): void {
+		
+	}
+
+	public onFocusLost(): void {
+		
+	}
+
 	// Requires a value for flags, prevents ambiguity when parsing args
 	private needsValue(flag: string): boolean {
 		switch (flag) {
