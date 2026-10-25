@@ -7,6 +7,10 @@ class TerminalApp implements Command, Application {
 	public desc: string = "core terminal for TermOS";
 	public evalOnLoad: string[] = [];
 
+	public getVersion(): string {
+		return "v0.0.6";
+	}
+
 	public help(args?: string[]): string[] {
 		return [
 			`${this.name}: ${this.desc}`,

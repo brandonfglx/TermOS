@@ -1,5 +1,7 @@
 import { SvelteMap } from "svelte/reactivity";
 import { kbManager, type KeyboardListener } from "../KeyboardManager.svelte";
+import { app } from "$lib/applications/TerminalApp";
+import { app as files } from "../../applications/FilesApp.svelte.ts";
 
 class Terminal implements KeyboardListener {
 	public input: string = $state("");
@@ -9,7 +11,7 @@ class Terminal implements KeyboardListener {
 
 	public history = $state<SvelteMap<string, string>[]>([
 		new SvelteMap<string, string>([
-			["text-light-fg dark:text-dark-fg", "TermOS v0.0.1 - enter \"help\" for more info"]
+			["text-light-fg dark:text-dark-fg", `TermOS ${app.getVersion()} - enter \"help\" for more info`]
 		])
 	]);
 	public commands = $state(new SvelteMap<string, Command>());
@@ -17,7 +19,7 @@ class Terminal implements KeyboardListener {
 
 	public halt: boolean = false;
 	public silent: boolean = false;
-	public prefix: string = "guest@TermOS % ";
+	public prefix: string = $derived(`guest@TermOS ${files.getCwd().name} % `);
 
 	constructor() {
 		kbManager.makeDefault(this);

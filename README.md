@@ -1,7 +1,7 @@
 <div align="center">
 	<h1>TermOS</h1>
 	<picture>
-		<img src="./resources/demo.gif" alt="TermOS Demo Clip">
+		<img src="./resources/demo/demo.gif" alt="TermOS Demo Clip">
 	</picture>
 	<h3>What if the terminal is the OS and much more than a terminal?</h3>
 </div>

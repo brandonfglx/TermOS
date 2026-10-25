@@ -3,7 +3,7 @@ import { desktop, type Application } from "$lib/components/listeners/Desktop.sve
 
 class BrowserApp implements Command, Application {
 	public name: string = "browser";
-	public desc: string = "a barebones browser";
+	public desc: string = "barebones browser";
 	public evalOnLoad: string[] = [];
 
 	public defaultSearchEngine = "https://www.google.com/search?q=%s";
@@ -78,7 +78,7 @@ class BrowserApp implements Command, Application {
 		// Check whether the URI matches an IP address (with or without port), basic URL format, or none (text query)
 		if (base.match(/[0-9]{3}\.[0-9]{3}\.[0-9]\.[0-9](:[0-9]{1,5})?/i) ||
 				base.match(/(?:(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,7}:|(?:[0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,5}(?::[0-9a-fA-F]{1,4}){1,2}|(?:[0-9a-fA-F]{1,4}:){1,4}(?::[0-9a-fA-F]{1,4}){1,3}|(?:[0-9a-fA-F]{1,4}:){1,3}(?::[0-9a-fA-F]{1,4}){1,4}|(?:[0-9a-fA-F]{1,4}:){1,2}(?::[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:(?:(?::[0-9a-fA-F]{1,4}){1,6})|:(?:(?::[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(?::[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]+|::(?:ffff(?::0{1,4})?:)?(?:(?:25[0-5]|(?:2[0-4]|1?[0-9])?[0-9])\.){3}(?:25[0-5]|(?:2[0-4]|1?[0-9])?[0-9])|(?:[0-9a-fA-F]{1,4}:){1,4}:(?:(?:25[0-5]|(?:2[0-4]|1?[0-9])?[0-9])\.){3}(?:25[0-5]|(?:2[0-4]|1?[0-9])?[0-9]))/i) ||
-				base.match(/(?![0-9.]+\b)[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)/i) ||
+				base.match(/(?![0-9.]+\b)[a-zA-Z0-9.-]+\.[a-zA-Z]{2,16}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)/i) ||
 				base.match(/localhost(:[0-9]{1,5})?/i)) {
 			// Use as direct URI
 			return `https://${base}${rest}`;
@@ -98,7 +98,14 @@ class BrowserApp implements Command, Application {
 	}
 	
 	public keydown(event: KeyboardEvent): void {
-
+		switch (event.key) {
+			case "q":
+			case "c":
+				if (event.ctrlKey) {
+					desktop.quit();
+				}
+				break;
+		}
 	}
 	
 	public keyup(event: KeyboardEvent): void {

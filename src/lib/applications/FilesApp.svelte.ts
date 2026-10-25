@@ -1,4 +1,4 @@
-import { type Application } from "$lib/components/listeners/Desktop.svelte";
+import { desktop, type Application } from "$lib/components/listeners/Desktop.svelte";
 import { terminal, type Command } from "$lib/components/listeners/Terminal.svelte";
 import { File, Directory, fileSystem } from "$lib/components/FileSystem.svelte";
 
@@ -6,7 +6,7 @@ class FilesApp implements Command, Application {
 	public name: string = "files";
 	public desc: string = "access files in a virtual file system and save it in LocalStorage";
 	public evalOnLoad: string[] = [
-		"alias ls files",
+		"alias ls files ls",
 		"alias touch files touch",
 		"alias rm files rm",
 		"alias cat files cat",
@@ -17,12 +17,14 @@ class FilesApp implements Command, Application {
 		"alias load files load",
 	];
 
-	private cwd: Directory = fileSystem.root;
+	private cwd: Directory = $state(fileSystem.root);
 
 	public readonly EL_PER_LINE = 6;
 
 	// Application properties
-	public navPath: string = this.cwd.getPath();
+	public input: HTMLInputElement | undefined = $state(undefined);
+	public searchedDir: Directory | null = $state(null);
+	public navPath: string = $state(""); // Represents the user's input; will be overriden if truePath points to a valid directory
 
 	public help(args?: string[]): string[] {
 		return [
@@ -93,28 +95,8 @@ class FilesApp implements Command, Application {
  
 	// Allow users to create files using `files create [name].[ext]` or delete using `files delete [name].txt` -> create aliases for `touch [name].[ext]` and `rm [name].[ext]`
 	public execute(args: Map<string, string>): void {
-		if (args.size === 0 && this.cwd.getAll().length > 0) {
-			let arr = this.cwd.getAll();
-			let maxLength = arr.toSorted((a, b) => b.name.length - a.name.length)[0].name.length;
-
-			// Process in batches
-			for (let i = 0; i < Math.floor(arr.length / this.EL_PER_LINE); i++) {
-				let line = "";
-
-				for (let j = i; j < this.EL_PER_LINE; j++) {
-					line += arr[j].name.padEnd(maxLength + 1);
-				}
-
-				terminal.printf(line, {});
-			}
-
-			// Add the remaining elements (final line)
-			let rest = "";
-			for (let i = arr.length - arr.length % this.EL_PER_LINE; i < arr.length; i++) {
-				rest += arr[i].name.padEnd(maxLength + 1);
-			}
-			terminal.printf(rest, {});
-
+		if (args.size === 0) {
+			desktop.switchTo(this);
 			return;
 		}
 
@@ -122,6 +104,9 @@ class FilesApp implements Command, Application {
 
 		// No path/"etc" value needed
 		switch (action) {
+			case "ls":
+				this.ls();
+				return;
 			case "pwd":
 				this.pwd();
 				return;
@@ -181,6 +166,33 @@ class FilesApp implements Command, Application {
 		}
 	}
 
+	public ls(): void {
+		let arr = this.cwd.getAll();
+		if (arr.length === 0) {
+			return;
+		}
+
+		let maxLength = arr.toSorted((a, b) => b.name.length - a.name.length)[0].name.length;
+
+		// Process in batches
+		for (let i = 0; i < Math.floor(arr.length / this.EL_PER_LINE); i++) {
+			let line = "";
+
+			for (let j = i; j < this.EL_PER_LINE; j++) {
+				line += arr[j].name.padEnd(maxLength + 1);
+			}
+
+			terminal.printf(line, {});
+		}
+
+		// Add the remaining elements (final line)
+		let rest = "";
+		for (let i = arr.length - arr.length % this.EL_PER_LINE; i < arr.length; i++) {
+			rest += arr[i].name.padEnd(maxLength + 1);
+		}
+		terminal.printf(rest, {});
+	}
+
 	public touch(path: string, args: Map<string, string>): File | null {
 		let dir = this.cwd;
 
@@ -208,36 +220,20 @@ class FilesApp implements Command, Application {
 
 	// Removes the file (or directory when "-r" | "--recursive" is appended), searches both files and dirs, returns whether the rm succeded
 	public rm(path: string, args: Map<string, string>): boolean {
-		if (path.indexOf("/") !== -1) {
-			let dir = this.findParent(path);
-			let name = this.extractName(path);
+		let parsed = this.parsePath(path);
+		let dir = this.find(parsed, "d");
+		let name = this.extractName(parsed);
 
-			if (dir == null) {
-				return false;
-			}
-
-			// Tries files first since it doesn't require -r
-			if (dir.hasFile(name)) {
-				return dir.removeFile(name);
-			} else if (dir.hasDir(name)) {
-				if (args.has("-r") || args.has("--recursive")) {
-					return dir.removeDir(name);
-				} else {
-					return false;
-				}
-			}
-
+		if (!dir) {
 			return false;
 		}
 
-		let name = this.extractName(path);
-
 		// Removing files/dirs one "step" from the cwd
-		if (this.cwd.hasFile(name)) {
-			return this.cwd.removeFile(name);
-		} else if (this.cwd.hasDir(name)) {
+		if (dir.hasFile(name)) {
+			return dir.removeFile(name);
+		} else if (dir.hasDir(name)) {
 			if (args.has("-r") || args.has("--recursive")) {
-				return this.cwd.removeDir(name);
+				return dir.removeDir(name);
 			} else {
 				return false;
 			}
@@ -247,17 +243,8 @@ class FilesApp implements Command, Application {
 	}
 
 	public cat(path: string, args: Map<string, string>): void {
-		let dir = this.cwd;
-		if (path.indexOf("/") !== -1) {
-			let found = this.find(path, "f");
-			if (!found) {
-				throw new Error(`files: invalid file: ${path}`);
-			}
-
-			dir = found;
-		}
-
-		let file = dir.getFile(this.extractName(path));
+		let parsed = this.parsePath(path);
+		let file = this.find(parsed, "f")?.getFile(this.extractName(parsed));
 		if (!file) {
 			throw new Error(`files: invalid file: ${path}`);
 		}
@@ -269,66 +256,50 @@ class FilesApp implements Command, Application {
 	}
 
 	public mkdir(path: string, args: Map<string, string>): Directory | null {
-		// Creating relative to current directory
-		if (path.indexOf("/") === -1) {
-			return this.cwd.createDir(path);
+		let parsed = this.parsePath(path);
+		let valid = this.findValidParent(parsed);
+		if (!valid) {
+			return null;
 		}
 
-		// Check whether the directory is being created from root
-		let start = this.cwd;
-		if (path.startsWith(fileSystem.root.name)) {
-			start = fileSystem.root;
+		// Create all remaining directories
+		let dir = valid[0];
+		let rem = valid[1].split("/").filter(x => x.length > 0);
+
+		if (rem.length === 0) {
+			return null; // None created
 		}
 
-		let name = this.extractName(path);
-
-		// Recursively navigate until intended parent dir
-		let potentialParent = this.findParent(path);
-		if (potentialParent) {
-			return potentialParent.createDir(name);
+		// Create directory if there is the only one & don't ask for -r
+		if (rem.length === 1) {
+			dir.createDir(rem[0]);
 		}
 
-		// Require user to acknowledge missing parent dirs
-		if (args.has("-r")) {
-			let pair = this.findParentUntilValid(path);
-			if (!pair) {
-				return null;
+		// Ask for -r permission, then create dir
+		if (!args.has("-r")) {
+			return null;
+		}
+
+		for (let next of rem) {
+			let nextDir = dir.createDir(next);
+			if (nextDir) {
+				dir = nextDir;
 			}
-
-			let remDirs = pair[1].split("/");
-			let curr = pair[0];
-
-			for (let name of remDirs) {
-				let temp = curr.createDir(name);
-				if (!temp) {
-					return null;
-				}
-
-				curr = temp;
-			}
-
-			return curr;
 		}
 
-		return null;
+		return dir;
 	}
 
-	// TODO: Distinguish between parent (using ..) and self (using .) - have a separate method to parse ., .., and ~ with respective full file paths
 	public cd(path: string, args: Map<string, string>): Directory | null {
-		if (path.indexOf("/") !== -1) {
-			// Convert path to absolute if neccessary
-			if (!path.startsWith(fileSystem.root.name)) {
-				path = fileSystem.root.name.slice(0, fileSystem.root.name.lastIndexOf("/")) + path;
-			}
-		}
+		let parsed = this.parsePath(path);
 
 		// Return "error" if path points to a file
-		if (this.find(path, "f") !== null) {
+		if (this.find(parsed, "f") !== null) {
 			return null;
 		}
 
 		// Move to path if possiple
-		let dir = this.find(path, "d");
+		let dir = this.find(parsed, "d");
 		if (dir) {
 			this.cwd = dir;
 		}
@@ -340,6 +311,20 @@ class FilesApp implements Command, Application {
 		terminal.println(this.cwd.getPath());
 	}
 
+	// Attempts to navigate to the given directory
+	public go(): void {
+		if (!this.navPath) {
+			return;
+		}
+		
+		let parsed = this.parsePath(this.navPath);
+		this.searchedDir = this.find(parsed, "d");
+
+		if (this.searchedDir) {
+			this.navPath = this.searchedDir.getPath();
+		}
+	}
+
 	// Returns the correct directory (or parent directory of file) when user inputs a nested path (d = dir, f = file)
 	public find(path: string, type: "d" | "f"): Directory | null {
 		let dir = this.cwd;
@@ -349,7 +334,11 @@ class FilesApp implements Command, Application {
 			path = path.substring(1);
 		}
 
-		let pathArr = path.split("/");
+		let pathArr = path.split("/").filter(x => x.length > 0);
+
+		if (pathArr.length === 0) {
+			return type === "f" ? null : dir;
+		}
 
 		for (let i = 0; i < pathArr.length; i++) {
 			if (i === pathArr.length - 1 && type === "f") {
@@ -360,8 +349,7 @@ class FilesApp implements Command, Application {
 				return null;
 			} else {
 				let next = dir.getDir(pathArr[i]);
-
-				if (next == null) {
+				if (next === null) {
 					return null;
 				}
 
@@ -374,7 +362,7 @@ class FilesApp implements Command, Application {
 
 	// Parses the provided path, replacing relative file paths with absolute ones
 	// NOTE: This method doesn't ensure path validity, yet...
-	private parsePath(path: string): string {
+	public parsePath(path: string): string {
 		// Replace ~ with root path if at beginning
 		if (path.startsWith("~")) {
 			path = fileSystem.root.name + path.substring(1);
@@ -382,8 +370,17 @@ class FilesApp implements Command, Application {
 
 		// Replace . to cwd if at beginning and if not part of a "hidden" file/dir
 		let next = path.at(1);
-		if (path.startsWith(".") && next && next === "/") {
-			path = this.cwd.name + path.substring(1);
+		if (path.startsWith(".") && (!next || (next && next === "/"))) {
+			if (this.cwd.name === next) {
+				path = path.substring(1);
+			} else {
+				path = this.cwd.name + path.substring(1);
+			}
+		}
+
+		// If there is no starting value, insert current working directory as reference
+		if (!path.startsWith("/") && !path.startsWith("..")) {
+			path = this.cwd.getPath() + "/" + path;
 		}
 
 		// Parsing .. - make it relate to the previous folder
@@ -391,6 +388,8 @@ class FilesApp implements Command, Application {
 		if (path.indexOf("..") !== -1) {
 			let ref = this.cwd;
 			let before = path.substring(0, path.indexOf(".."));
+
+			// Navigate to found parent if possible
 			if (before.length > 0) {
 				let temp = this.find(before, "d");
 				if (!temp) {
@@ -400,23 +399,33 @@ class FilesApp implements Command, Application {
 				ref = temp;
 			}
 
-			return this.parsePath(ref.parent?.getPath() + path.substring(path.indexOf("..") + 1));
+			return this.parsePath(ref.parent?.getPath() + path.substring(path.indexOf("..") + 2));
 		}
 
 		return path;
 	}
 
 	// Finds the parent of the specified dir or file, or null if the dir/file doesn't exist when parsing
-	private findParent(path: string): Directory | null {
-		return this.find(path.substring(0, path.lastIndexOf("/")), "d");
+	public findParent(path: string): Directory | null {
+		let parentPath = path.substring(0, path.lastIndexOf("/"));
+		if (parentPath.length === 0) {
+			return fileSystem.root;
+		}
+
+		return this.find(parentPath, "d");
 	}
 
 	// Finds the parent of the specified dir or file as low in the directory tree as possible to the closest parent
-	private findParentUntilValid(path: string): [Directory, string] | null {
+	private findValidParent(path: string): [Directory, string] | null {
 		let splitPath = path;
 
-		while (splitPath.trim().replaceAll("/", "").length > 0 && this.findParent(splitPath) === null) {
+		// Iterates until splitPath finds a valid parent; splitPath returns path of parent, or empty if at root
+		do {
 			splitPath = splitPath.substring(0, splitPath.lastIndexOf("/"));
+		} while (splitPath.trim().replaceAll("/", "").length > 0 && this.findParent(splitPath) === null);
+
+		if (splitPath.length === 0) {
+			return [fileSystem.root, path.substring(fileSystem.root.name.length)];
 		}
 
 		let parent = this.findParent(splitPath);
@@ -430,6 +439,19 @@ class FilesApp implements Command, Application {
 	// Extracts the name of the dir/file with this path.
 	public extractName(path: string): string {
 		return path.substring(path.lastIndexOf("/") + 1);
+	}
+
+	// Returns a string representing the bytes converted to its most convienient value
+	public convertBytes(bytes: number): string {
+		if (bytes >= 1000000000) {
+			return `${(bytes / 1000000000).toFixed(2)} GB`
+		} else if (bytes >= 1000000) {
+			return `${(bytes / 1000000).toFixed(2)} MB`;
+		} else if (bytes >= 1000) {
+			return `${(bytes / 1000).toFixed(2)} kB`;
+		}
+
+		return `${bytes} bytes`;
 	}
 
 	public getCwd(): Directory {
@@ -447,7 +469,9 @@ class FilesApp implements Command, Application {
 	// Application handlers
 
 	public onAppShow(): void {
-		
+		// Set current reference directory to cwd
+		this.searchedDir = this.cwd;
+		this.navPath = this.searchedDir.getPath();
 	}
 
 	public onAppHide(): void {
@@ -455,7 +479,14 @@ class FilesApp implements Command, Application {
 	}
 
 	public keydown(event: KeyboardEvent): void {
-		
+		switch (event.key) {
+			case "q":
+			case "c":
+				if (event.ctrlKey) {
+					desktop.quit();
+				}
+				break;
+		}
 	}
 
 	public keyup(event: KeyboardEvent): void {

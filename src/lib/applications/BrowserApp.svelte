@@ -14,8 +14,7 @@
 </script>
 
 <div class="h-full w-full overflow-y-auto flex flex-col">
-	<!-- Top bar: refresh, back, forward, and address bar with search info or URL -->
-	 <div class="bg-[#e0e0e0] dark:bg-[#101010] font-mono text-base flex flex-row">
+	 <div class="bg-term-light-bg dark:bg-term-dark-bg font-mono text-base flex flex-row">
 		<input 
 			bind:this={app.addressBar}
 			type="text"
@@ -23,18 +22,21 @@
 			class="bg-term-light-bg dark:bg-term-dark-bg flex-1 border-none outline-none focus:outline-none focus:ring-0"
 		/>
 	 </div>
-	<!-- iframe showing search engine or webpage and avoiding CORS issues with https://everyorigin.jwvbremen.nl/ -->
 	{#if app.renderHTML}
 		<iframe
 			title="browser"
 			class="flex-1"
+			allow="autoplay"
 			srcdoc={app.renderHTML}
+			allowfullscreen
 		></iframe>
 	{:else}
 		<iframe
 			title="browser"
 			class="flex-1"
+			allow="autoplay"
 			src={app.src}
+			allowfullscreen
 		></iframe>
 	{/if}
 </div>
