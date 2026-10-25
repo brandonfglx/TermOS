@@ -1,5 +1,5 @@
 import { terminal, type Command } from "$lib/components/listeners/Terminal.svelte";
-import { app as files } from "$lib/applications/FilesApp";
+import { app as files } from "./FilesApp.svelte.ts";
 
 class Info implements Command {
 	public name: string = "info";

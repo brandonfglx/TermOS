@@ -1,7 +1,7 @@
 import { Directory, File } from "$lib/components/FileSystem.svelte";
 import { desktop, type Application } from "$lib/components/listeners/Desktop.svelte";
 import type { Command } from "$lib/components/listeners/Terminal.svelte";
-import { app as files } from "./FilesApp";
+import { app as files } from "./FilesApp.svelte.ts";
 
 class TextApp implements Command, Application {
 	public name: string = "text";
@@ -85,13 +85,16 @@ class TextApp implements Command, Application {
 			throw new Error("text: must specify file path");
 		}
 
+		// Convert path by parsing it
+		path = files.parsePath(path);
+
 		// Find from root
 		if (path.indexOf("/") === -1) {
 			this.dir = files.getCwd();
 		} else {
-			this.dir = files.find(path, "f");
+			this.dir = files.findParent(path);
 			if (!this.dir) {
-				// Directory doesn't exist, throw error
+				// Parent directory doesn't exist, throw error
 				throw new Error(`text: parent directory not found for: ${path}`);
 			}
 		}

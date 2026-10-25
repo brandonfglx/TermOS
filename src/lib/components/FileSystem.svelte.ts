@@ -144,9 +144,13 @@ export class Directory {
 
 	// Recursively gets the path of the current directory
 	public getPath(): string {
-		if (!this.parent) {
-			let trailing = this.name.lastIndexOf("/");
-			return this.name.slice(0, trailing) + this.name.slice(trailing + 1);
+		if (!this.parent) { // root doesn't have a parent so just return root without trailing /
+			return this.name;
+		}
+
+		let parentPath = this.parent.getPath();
+		if (parentPath.endsWith("/")) {
+			return `${this.parent.getPath()}${this.name}`;
 		}
 
 		return `${this.parent.getPath()}/${this.name}`;
@@ -172,7 +176,11 @@ export class FileMetadata {
 
 	// path should be the full path, with file name and extension
 	constructor(path: string) {
-		this.dateCreated = this.now();
+		let now = this.now();
+
+		this.dateCreated = now;
+		this.dateModified = now;
+		this.dateAccessed = now;
 		this.path = path;
 		this.nameWithoutExt = path.substring(path.lastIndexOf("/") + 1, path.lastIndexOf("."));
 		this.extension = path.substring(path.lastIndexOf("."));
