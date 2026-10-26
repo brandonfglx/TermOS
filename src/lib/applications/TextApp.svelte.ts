@@ -107,8 +107,8 @@ class TextApp implements Command, Application {
 		if (args.size === 1) {
 			// Load information into content
 			this.content = this.file.getContent() ?? "";
-
 			desktop.switchTo(this);
+			return;
 		}
 
 		let content = this.process(args.get("etc") ?? "");

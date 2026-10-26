@@ -1,5 +1,15 @@
 <script lang="ts">
+    import { onMount } from "svelte";
 	import { app as text } from "./TextApp.svelte.ts";
+
+	onMount(() => {
+		// Force textArea to conform to application keydown checks
+		if (text.textArea) {
+			text.textArea.addEventListener("keydown", (event) => {
+				text.keydown(event);
+			});
+		}
+	})
 </script>
 
 <div class="h-full w-full overflow-y-auto flex flex-row font-mono text-base">
