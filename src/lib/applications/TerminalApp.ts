@@ -8,7 +8,7 @@ class TerminalApp implements Command, Application {
 	public evalOnLoad: string[] = [];
 
 	public getVersion(): string {
-		return "v0.0.6";
+		return "v0.0.7a";
 	}
 
 	public help(args?: string[]): string[] {
