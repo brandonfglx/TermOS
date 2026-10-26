@@ -14,14 +14,17 @@ Try TermOS [here!](https://brandonfglx.github.io/TermOS)
 
 ## Features
  - alias: toggles aliases to commands; aliases are used if a command doesn't exist
+ - browser: barebones browser
  - clear: clears the terminal
  - echo: outputs characters to stdout
  - eval: evaluates the command during runtime
  - files: access files in a virtual file system and save it in LocalStorage
  - goto: go to a website on the world wide web
  - help: shows the help menu
- - info: get device info
+ - info: get info about the current device or a file's metadata
  - loc: prints info about the user's location or about the zip code
+ - music: barebones music app
+ - quit: quits the current program
  - search: search the web with any search engine
  - term: core terminal for TermOS
  - text: a basic text editor
