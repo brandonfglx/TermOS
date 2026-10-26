@@ -6,7 +6,7 @@ class Desktop implements KeyboardListener {
 	private apps = $state(new SvelteMap<string, Application>());
 	private comps = $state(new SvelteMap<string, Component>());
 	public active = $state<[string, Application, Component] | null>(null); // Application name paired with actual Component (HTML)
-	public history = $state<Application[]>([]);
+	public viewStack = $state<Application[]>([]);
 	private default: string = "TerminalApp"; // Initially loaded app, finds by matching name
 	private switching = $state(false);
 	private switchIndex = $state(0);
@@ -15,21 +15,40 @@ class Desktop implements KeyboardListener {
 		const svModules = import.meta.glob<{default: Component}>("$lib/applications/*App.svelte", { eager: true });
 		const tsModules = import.meta.glob<any>("$lib/applications/*App.{ts,svelte.ts}", { eager: true });
 
-		const svEntries = Object.entries(svModules);
-		const tsEntries = Object.entries(tsModules);
+		const tsByBase = new Map<string, { app: Application }>();
+		for (const [path, mod] of Object.entries(tsModules)) {
+			const base = path.split("/").pop()!.replace(/\.svelte\.ts$|\.ts$/, "");
+			if (!tsByBase.has(base) || path.endsWith(".svelte.ts")) {
+				tsByBase.set(base, mod);
+			}
+		}
 
-		for (let i = 0; i < svEntries.length && i < tsEntries.length; i++) {
-			const [svPath, svObj] = svEntries[i];
-			const [tsPath, tsObj] = tsEntries[i];
-			const tsApp = tsObj.app as Application;
+		for (const [svPath, svObj] of Object.entries(svModules)) {
+			const base = svPath.split("/").pop()!.replace(/\.svelte$/, "");
+			const tsApp = tsByBase.get(base)?.app;
+			if (!tsApp) {
+				continue; // Ignore .svelte files without .ts / .svelte.ts
+			}
 
-			if (svPath.indexOf(this.default) !== -1 && tsPath.indexOf(this.default) !== -1) {
+			if (base === this.default) {
 				this.active = [tsApp.name, tsApp, svObj.default];
-				this.history.push(tsApp);
+				this.viewStack.push(tsApp);
 			}
 
 			this.apps.set(tsApp.name, tsApp);
 			this.comps.set(tsApp.name, svObj.default);
+		}
+
+		// Force load some application in worst-case scenario
+		if (!this.active) {
+			for (const [name, comp] of this.comps) {
+				const app = this.apps.get(name);
+				if (app) {
+					console.warn("desktop: loadApplications: couldn't find active after parsing, loading first valid application...");
+					this.active = [name, app, comp];
+					break;
+				}
+			}
 		}
 	}
 
@@ -44,7 +63,7 @@ class Desktop implements KeyboardListener {
 
 			// Automatically make kbManager direct key events to application
 			kbManager.makeActive(app);
-			this.history.push(app);
+			this.viewStack.push(app);
 
 			app.onAppShow();
 
@@ -57,7 +76,8 @@ class Desktop implements KeyboardListener {
 	// Quits the current application and reverts to the last active application, if there is no history, returns to the default application
 	// Returns true if it returned to the previous application; false otherwise
 	public quit(): boolean {
-		let prev = this.history.at(-2);
+		this.viewStack.pop(); // Remove the current app from 
+		let prev = this.viewStack.pop();
 		if (prev) {
 			return this.switchTo(prev);
 		}

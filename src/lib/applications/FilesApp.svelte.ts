@@ -18,10 +18,14 @@ class FilesApp implements Command, Application {
 	];
 
 	private cwd: Directory = $state(fileSystem.root);
+	private history: Directory[] = $state([]);
+	private historyIndex: number = 0;
 
 	public readonly EL_PER_LINE = 6;
 
 	// Application properties
+	public back: SVGSVGElement | undefined;
+	public forward: SVGSVGElement | undefined;
 	public input: HTMLInputElement | undefined = $state(undefined);
 	public searchedDir: Directory | null = $state(null);
 	public navPath: string = $state(""); // Represents the user's input; will be overriden if truePath points to a valid directory
@@ -124,11 +128,14 @@ class FilesApp implements Command, Application {
 		// Calls appropriate action
 		switch (action) {
 			case "touch":
-				this.touch(etc, remArgs);
+				let succededTouch = this.touch(etc, remArgs);
+				if (!succededTouch) {
+					throw new Error(`files touch: failed to create file: ${etc}`);
+				}
 				break;
 			case "rm":
-				let succeded = this.rm(etc, remArgs);
-				if (!succeded) {
+				let succededRm = this.rm(etc, remArgs);
+				if (!succededRm) {
 					throw new Error(`files rm: failed to remove: ${etc}`);
 				}
 				break;
@@ -136,10 +143,16 @@ class FilesApp implements Command, Application {
 				this.cat(etc, remArgs);
 				break;
 			case "mkdir":
-				this.mkdir(etc, remArgs);
+				let succededMkdir = this.mkdir(etc, remArgs);
+				if (!succededMkdir) {
+					throw new Error(`files mkdir: failed to create directory: ${etc}`);
+				}
 				break;
 			case "cd":
-				this.cd(etc, remArgs);
+				let succededCd = this.cd(etc, remArgs);
+				if (!succededCd) {
+					throw new Error(`files cd: failed to change directory: ${etc}`);
+				}
 				break;
 			case "save":
 				this.save();
@@ -160,10 +173,12 @@ class FilesApp implements Command, Application {
 	// Loads the entire root directory from LocalStorage; returns true if succeeded, false otherwise
 	public load(): void {
 		let result = fileSystem.load();
-
 		if (!result) {
 			throw new Error("files: cannot load root from localStorage");
 		}
+
+		this.cwd = fileSystem.root;
+		this.onAppShow(); // Reset the state of FilesApp when reloading from localStorage (even though its not an app reload)
 	}
 
 	public ls(): void {
@@ -221,25 +236,28 @@ class FilesApp implements Command, Application {
 	// Removes the file (or directory when "-r" | "--recursive" is appended), searches both files and dirs, returns whether the rm succeded
 	public rm(path: string, args: Map<string, string>): boolean {
 		let parsed = this.parsePath(path);
-		let dir = this.find(parsed, "d");
 		let name = this.extractName(parsed);
 
-		if (!dir) {
-			return false;
-		}
+		let potDir = this.find(parsed, "d");
+		let potFile = this.find(parsed, "f");
 
-		// Removing files/dirs one "step" from the cwd
-		if (dir.hasFile(name)) {
-			return dir.removeFile(name);
-		} else if (dir.hasDir(name)) {
+		// Always delete the file first, then try to delete directory
+		if (potFile) {
+			return potFile.removeFile(name);
+		} else if (potDir) {
 			if (args.has("-r") || args.has("--recursive")) {
-				return dir.removeDir(name);
-			} else {
-				return false;
-			}
-		}
+				let parent = potDir.parent;
+				if (!parent) {
+					throw new Error(`files rm: cannot delete directory with no parent`);
+				}
 
-		return false;
+				return parent.removeDir(name);
+			} else {
+				throw new Error(`files rm: cannot delete directory at "${parsed}" without -r`);
+			}
+		} else {
+			throw new Error(`files rm: could not find item at "${parsed}"`);
+		}
 	}
 
 	public cat(path: string, args: Map<string, string>): void {
@@ -272,12 +290,12 @@ class FilesApp implements Command, Application {
 
 		// Create directory if there is the only one & don't ask for -r
 		if (rem.length === 1) {
-			dir.createDir(rem[0]);
+			return dir.createDir(rem[0]);
 		}
 
 		// Ask for -r permission, then create dir
-		if (!args.has("-r")) {
-			return null;
+		if (!args.has("-r") || !args.has("--recursive")) {
+			throw new Error("files mkdir: creating nested directories needs -r");
 		}
 
 		for (let next of rem) {
@@ -311,17 +329,80 @@ class FilesApp implements Command, Application {
 		terminal.println(this.cwd.getPath());
 	}
 
-	// Attempts to navigate to the given directory
-	public go(): void {
-		if (!this.navPath) {
+	// Attempts to navigate back/forth using a history stack system
+	public nav(delta: number): void {
+		if (this.history.length === 0) {
 			return;
 		}
-		
-		let parsed = this.parsePath(this.navPath);
-		this.searchedDir = this.find(parsed, "d");
 
-		if (this.searchedDir) {
-			this.navPath = this.searchedDir.getPath();
+		this.historyIndex = Math.max(0, Math.min(this.historyIndex + delta, this.history.length - 1));
+		let dir = this.history[this.historyIndex];
+		if (!dir) {
+			return;
+		}
+
+		this.searchedDir = dir;
+		this.navPath = dir.getPath();
+	}
+
+	// 
+	public preview(path: string): void {
+		this.navPath = path;
+		this.searchedDir = this.resolveDir(path);
+	}
+
+	// Attempts to navigate to the given directory
+	public go(): void {
+		let dir = this.resolveDir(this.navPath);
+		this.searchedDir = dir;
+		if (dir) {
+			this.commit(dir);
+		}
+	}
+
+	// Attempts to find a Directory that matches the path; null otherwise
+	private resolveDir(path: string): Directory | null {
+		if (!path.trim()) {
+			return this.cwd;
+		}
+
+		try {
+			return this.find(this.parsePath(path), "d");
+		} catch {
+			return null;
+		}
+	}
+
+	// Pushes the Directory into the history stack and makes it the "true" directory 
+	private commit(dir: Directory): void {
+		this.navPath = dir.getPath();
+
+		// Do not add to history if already present
+		if (this.history[this.historyIndex] === dir) {
+			return;
+		}
+
+		this.history.splice(this.historyIndex + 1);
+		this.history.push(dir);
+		this.historyIndex = this.history.length - 1;
+	}
+
+	// Sets the current navPath to the target directory or opens up the file in the TextApp for file
+	public open(index: number): void {
+		if (!this.searchedDir) {
+			throw new Error(`files: open: invalid searchedDir`);
+		}
+		
+		let item = this.searchedDir.getAll().at(index);
+		if (!item) {
+			throw new Error(`files: open: invalid index: ${index}`);
+		}
+
+		if ("dirs" in item) { // Directory
+			this.navPath = item.getPath();
+			this.go();
+		} else { // File
+			terminal.executeCommand(`text ${item.getPath()}`);
 		}
 	}
 
@@ -379,8 +460,12 @@ class FilesApp implements Command, Application {
 		}
 
 		// If there is no starting value, insert current working directory as reference
-		if (!path.startsWith("/") && !path.startsWith("..")) {
-			path = this.cwd.getPath() + "/" + path;
+		if (!path.startsWith(fileSystem.root.name) && !path.startsWith("..")) {
+			if (this.cwd.getPath() === fileSystem.root.getPath()) {
+				path = this.cwd.getPath() + path;
+			} else {
+				path = this.cwd.getPath() + "/" + path;
+			}
 		}
 
 		// Parsing .. - make it relate to the previous folder
@@ -472,6 +557,8 @@ class FilesApp implements Command, Application {
 		// Set current reference directory to cwd
 		this.searchedDir = this.cwd;
 		this.navPath = this.searchedDir.getPath();
+		this.history = [this.cwd];
+		this.historyIndex = 0;
 	}
 
 	public onAppHide(): void {

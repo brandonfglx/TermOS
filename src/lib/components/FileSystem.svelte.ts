@@ -1,7 +1,7 @@
 export class File {
-	public name: string;
+	public name: string = $state("");
 	public parent: Directory;
-	private content: string | undefined; // OPT: Support non-text files such as music - store using LocalStorage or as bytes
+	private content: string | undefined = $state(undefined); // OPT: Support non-text files such as music - store using LocalStorage or as bytes
 	public metadata: FileMetadata;
 
 	constructor(name: string, parent: Directory, content?: string) {
@@ -32,13 +32,23 @@ export class File {
 	public getSize(): number {
 		return new TextEncoder().encode(this.content).length;
 	}
+
+	// Gets the current path of the file
+	public getPath(): string {
+		let parentPath = this.parent.getPath();
+		if (parentPath.endsWith("/")) {
+			return parentPath + this.name;
+		}
+
+		return parentPath + "/" + this.name;
+	}
 }
 
 export class Directory {
-	public name: string;
+	public name: string = $state("");
 	public parent: Directory | undefined;
-	public files: File[];
-	public dirs: Directory[];
+	public files: File[] = $state<File[]>([]);
+	public dirs: Directory[] = $state<Directory[]>([]);
 	public metadata: FileMetadata;
 
 	constructor(name: string, parent?: Directory) {
@@ -166,9 +176,9 @@ export class Directory {
 }
 
 export class FileMetadata {
-	public readonly dateCreated: number = -1; // Dates in Unix Time to UTC (automatically convert to local time when displaying)
-	public dateModified: number = 0;
-	public dateAccessed: number = 0;
+	public readonly dateCreated: number = $state(0); // Dates in Unix Time to UTC (automatically convert to local time when displaying)
+	public dateModified: number = $state(0);
+	public dateAccessed: number = $state(0);
 	public readonly path: string = "";
 	public readonly nameWithoutExt: string = "";
 	public readonly extension: string = ""; // HTML style (aka image/jpeg, application/json, text/plain, etc.)
@@ -203,28 +213,43 @@ export class FileMetadata {
 }
 
 class FileSystem {
-	public root: Directory;
+	public root: Directory = $state(new Directory("/"));
 
 	public readonly LS_KEY = "fileSystem";
 
-	constructor() {
-		this.root = new Directory("/");
-	}
-
 	// Saves the root Directory as a JSON string in localStorage
 	public save(): void {
-		localStorage.setItem(this.LS_KEY, JSON.stringify(this.root));
+		localStorage.setItem(this.LS_KEY, JSON.stringify($state.snapshot(this.root)));
 	}
 
 	// Loads the root Directory from localStorage and returns true; false otherwise
 	public load(): boolean {
-		let root = localStorage.getItem(this.LS_KEY);
-
-		if (root) {
-			this.root = JSON.parse(root) as Directory;
+		let raw = localStorage.getItem(this.LS_KEY);
+		if (!raw) {
+			return false;
 		}
 
-		return Boolean(root);
+		try {
+			this.root = this.hydrateDirectory(JSON.parse(raw));
+			return true;
+		} catch {
+			return false;
+		}
+	}
+
+	// Hydrates the entire directory, refreshes data before putting it into localStorage
+	public hydrateDirectory(data: any, parent?: Directory): Directory {
+		let dir = new Directory(data.name, parent);
+		Object.assign(dir.metadata, data.metadata);
+
+		dir.dirs = data.dirs.map((child: any) => this.hydrateDirectory(child, dir));
+		dir.files = data.files.map((child: any) => {
+			let file = new File(child.name, dir, child.content);
+			Object.assign(file.metadata, child.metadata);
+			return file;
+		});
+
+		return dir;
 	}
 }
 

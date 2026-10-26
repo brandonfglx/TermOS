@@ -9,10 +9,9 @@ class BrowserApp implements Command, Application {
 	public defaultSearchEngine = "https://www.google.com/search?q=%s";
 
 	public addressBar: HTMLInputElement | undefined;
+	public frame: HTMLIFrameElement | undefined;
 	public renderHTML: string = $state("");
 	public src: string = $state("");
-
-	// TODO: Implement a similar system to Search.ts with the ability to add/set/rm search engines
 	
 	public help(args?: string[]): string[] {
 		return [
