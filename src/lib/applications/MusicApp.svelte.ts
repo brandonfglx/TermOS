@@ -10,6 +10,7 @@ class MusicApp implements Command, Application {
 	public frame: HTMLIFrameElement | undefined;
 	public playlist: string[] = $state([]); // Holds array of YouTube video IDs
 	public playlistIndex: number = $state(0);
+	public src: string = $state("");
 	public playing: boolean = $state(false);
 
 	public help(args?: string[]): string[] {
@@ -45,8 +46,10 @@ class MusicApp implements Command, Application {
 		this.playing = !this.playing;
 	}
 
+	// TODO (later): Allow user to add videos to TermOS Music playlist through YT playlist URL
 	// Adds the YouTube video with ID from <input> to the playlist
 	public add(): void {
+		// TODO: Allow user to copy paste url - parse video ID from URL (ignoring playlist, etc)
 		if (this.input) {
 			this.playlist.push(this.input);
 			this.input = "";
@@ -69,7 +72,13 @@ class MusicApp implements Command, Application {
 	}
 	
 	public keydown(event: KeyboardEvent): void {
-
+		switch (event.key) {
+			case "q":
+				if (event.ctrlKey) {
+					desktop.quit();
+				}
+				break;
+		}
 	}
 	
 	public keyup(event: KeyboardEvent): void {

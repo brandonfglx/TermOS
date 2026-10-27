@@ -1,6 +1,7 @@
 import { terminal, type Command } from "$lib/components/listeners/Terminal.svelte";
 import { desktop, type Application } from "$lib/components/listeners/Desktop.svelte";
 
+// TODO: Make URL in address bar correct to full working URL if possible
 class BrowserApp implements Command, Application {
 	public name: string = "browser";
 	public desc: string = "barebones browser";

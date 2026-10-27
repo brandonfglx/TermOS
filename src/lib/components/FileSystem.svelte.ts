@@ -10,7 +10,7 @@ export class File {
 		this.content = content;
 
 		// Construct metadata
-		this.metadata = new FileMetadata(this.parent.getPath() === fileSystem.root.name ? `${fileSystem.root.name}${this.name}` : `${this.parent.getPath()}/${this.name}`);
+		this.metadata = $state(new FileMetadata(this));
 	}
 
 	// TEMP: Eventually return bytes so that non-text data can be represented
@@ -26,6 +26,9 @@ export class File {
 		this.metadata.dateModified = this.metadata.now();
 		this.metadata.dateAccessed = this.metadata.now();
 		this.metadata.size = this.getSize();
+
+		// Update parent directories
+		this.parent.update();
 	}
 
 	// Calculates the size of the file in bytes
@@ -58,7 +61,7 @@ export class Directory {
 		this.dirs = [];
 
 		// Construct metadata
-		this.metadata = new FileMetadata(this.parent ? `${this.parent.getPath()}/${this.name}` : this.name);
+		this.metadata = $state(new FileMetadata(this));
 	}
 
 	// NOTE: All of the following methods "name" parameter is only the names of the files/dirs in this folder, you cannot pass in "dir1/file1".
@@ -106,6 +109,48 @@ export class Directory {
 		}
 
 		return false;
+	}
+
+	public moveDir(name: string, target: Directory, force: boolean = false): boolean {
+		let dir = this.getDir(name);
+		if (!dir || (!force && (target === this || target.hasFile(name)))) {
+			return false;
+		}
+
+		// Prevent moving a (parent) directory into itself or a descendant
+		let nav: Directory | undefined = target;
+		while (nav) {
+			if (nav === dir) {
+				return false;
+			}
+
+			nav = nav.parent;
+		}
+
+		this.dirs.splice(this.dirs.indexOf(dir), 1);
+		target.dirs.push(dir);
+		dir.parent = target;
+
+		// Update metadata
+		dir.metadata.moved();
+		
+		return true;
+	}
+
+	public moveFile(name: string, target: Directory, force: boolean = false): boolean {
+		let file = this.getFile(name);
+		if (!file || (!force && (target === this || target.hasFile(name)))) {
+			return false;
+		}
+
+		this.files.splice(this.files.indexOf(file), 1);
+		target.files.push(file);
+		file.parent = target;
+
+		// Update metadata
+		file.metadata.moved();
+
+		return true;
 	}
 
 	public hasFile(name: string): boolean {
@@ -173,42 +218,92 @@ export class Directory {
 
 		return arr.sort((a, b) => a.name.localeCompare(b.name));
 	}
+
+	// Refreshes the directory's metadata
+	public update(): void {
+		// Finds most recently modified and accessed dir/file
+		let modified = this.getAll().sort((a, b) => b.metadata.dateModified - a.metadata.dateModified)[0];
+		let accessed = this.getAll().sort((a, b) => b.metadata.dateAccessed - a.metadata.dateAccessed)[0];
+
+		if (modified && modified.metadata.dateModified > this.metadata.dateModified) {
+			this.metadata.dateModified = modified.metadata.dateModified;
+		}
+
+		if (accessed && accessed.metadata.dateAccessed > this.metadata.dateAccessed) {
+			this.metadata.dateAccessed = accessed.metadata.dateAccessed;
+		}
+
+		// Make size the sum of all items
+		this.metadata.size = this.getAll().map(obj => obj.metadata.size).reduce((sum, curr) => sum + curr, 0);
+
+		// Update parent if it exists
+		if (this.parent) {
+			this.parent.update();
+		}
+	}
 }
 
 export class FileMetadata {
-	public readonly dateCreated: number = $state(0); // Dates in Unix Time to UTC (automatically convert to local time when displaying)
+	public dateCreated: number = $state(0); // Dates in Unix Time to UTC (automatically convert to local time when displaying)
 	public dateModified: number = $state(0);
 	public dateAccessed: number = $state(0);
-	public readonly path: string = "";
-	public readonly nameWithoutExt: string = "";
-	public readonly extension: string = ""; // HTML style (aka image/jpeg, application/json, text/plain, etc.)
-	public size: number = 0; // In bytes
+	public path: string = "";
+	public nameWithoutExt: string = "";
+	public extension: string = ""; // HTML style (aka image/jpeg, application/json, text/plain, etc.)
+	public size: number = $state(0); // In bytes
+	
+	private obj: Directory | File;
 
 	// path should be the full path, with file name and extension
-	constructor(path: string) {
+	constructor(obj: Directory | File) {
 		let now = this.now();
+
+		this.obj = obj;
 
 		this.dateCreated = now;
 		this.dateModified = now;
 		this.dateAccessed = now;
-		this.path = path;
-		this.nameWithoutExt = path.substring(path.lastIndexOf("/") + 1, path.lastIndexOf("."));
-		this.extension = path.substring(path.lastIndexOf("."));
+		this.path = this.obj.getPath();
+		this.nameWithoutExt = this.path.substring(this.path.lastIndexOf("/") + 1, this.path.lastIndexOf("."));
+		this.extension = this.path.substring(this.path.lastIndexOf("."));
 	}
 
+	// Returns new date modified
 	public modified(): number {
 		this.dateModified = this.now();
 		return this.dateModified;
 	}
 
+	// Returns new date accessed
 	public accessed(): number {
 		this.dateAccessed = this.now();
 		return this.dateAccessed;
 	}
 
+	// Returns new path
+	public moved(): string {
+		this.path = this.obj.getPath();
+		this.nameWithoutExt = this.path.substring(this.path.lastIndexOf("/") + 1, this.path.lastIndexOf("."));
+		this.extension = this.path.substring(this.path.lastIndexOf("."));
+
+		return this.path;
+	}
+
 	// Convenience method to get standardized unix time
 	public now(): number {
 		return Date.now();
+	}
+
+	public toJSON(): Object {
+		return {
+			dateCreated: this.dateCreated,
+			dateModified: this.dateModified,
+			dateAccessed: this.dateAccessed,
+			path: this.path,
+			nameWithoutExt: this.nameWithoutExt,
+			extension: this.extension,
+			size: this.size
+		};
 	}
 }
 

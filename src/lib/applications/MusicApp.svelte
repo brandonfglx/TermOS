@@ -2,12 +2,12 @@
 	import { app as music } from "./MusicApp.svelte.ts";
 </script>
 
-<div class="h-full w-full flex flex-row">
+<div class="h-full w-full flex flex-row font-mono text-base">
 	<!-- Similar to browser, but uses YouTube's iframe embed feature to autoplay radio and randomize when complete; use https://developers.google.com/youtube/iframe_api_reference and add ?autoplay=1 into url -->
 	<!-- Sidebar for upcoming music + controls -->
-	<div class="bg-white dark:bg-[#101010] h-full min-h-0 p-2 flex flex-col gap-2 font-mono text-base">
+	<div class="bg-[#f0f0f0] dark:bg-[#101010] h-full min-h-0 p-2 flex flex-col gap-2">
 		<!-- Control to shuffle and add music -->
-		<div class="flex shrink-0 flex-row gap-2 p-2 bg-white dark:bg-[#222222]">
+		<div class="flex shrink-0 flex-row gap-2 p-2 bg-[#d8d8d8] dark:bg-[#222222]">
 			{#if music.playing}
 				<button class="w-8 cursor-pointer bg-transparent border-none p-0 flex items-center justify-center" aria-label="Pause" onclick={() => {music.togglePlaying()}}>
 					<svg viewBox="-1 0 8 8" xmlns="http://www.w3.org/2000/svg">
@@ -40,7 +40,7 @@
 			</button>
 			<input
 				type="text"
-				placeholder="YouTube ID..."
+				placeholder="YouTube ID or URL..."
 				class="bg-term-light-bg dark:bg-term-dark-bg border-none outline-none focus:outline-none focus:ring-0"
 				bind:value={music.input}
 				onkeydown={(event) => {
@@ -71,12 +71,23 @@
 		</div>
 	</div>
 	<!-- Container for YT video iframe -->
-	<iframe
-		title="Music Player"
-		class="flex-1"
-		allow="autoplay"
-		allowfullscreen
-		bind:this={music.frame}
-	>
-	</iframe>
+	{#if music.src}
+		<iframe
+			id="player"
+			title="Music Player"
+			class="flex-1"
+			allow="autoplay"
+			allowfullscreen
+			src={music.src}
+			bind:this={music.frame}
+		>
+		</iframe>
+	{:else}
+		<div class="flex-1 flex flex-col gap-4 justify-center items-center">
+			<svg class="w-24" viewBox="0 0 12 12" xmlns="http://www.w3.org/2000/svg">
+				<path d="M6,0C2.6862793,0,0,2.6862793,0,6s2.6862793,6,6,6s6-2.6862793,6-6S9.3137207,0,6,0z M6.5,9.5h-1v-1h1V9.5z   M7.2651367,6.1738281C6.7329102,6.5068359,6.5,6.6845703,6.5,7v0.5h-1V7c0-0.9023438,0.7138672-1.3486328,1.2348633-1.6738281  C7.2670898,4.9931641,7.5,4.8154297,7.5,4.5c0-0.5517578-0.4487305-1-1-1h-1c-0.5512695,0-1,0.4482422-1,1V5h-1V4.5  c0-1.1025391,0.8969727-2,2-2h1c1.1030273,0,2,0.8974609,2,2C8.5,5.4023438,7.7861328,5.8486328,7.2651367,6.1738281z" fill="currentColor"/>
+			</svg>
+			<h1 class="text-2xl text-center">Video Not Found</h1>
+		</div>
+	{/if}
 </div>

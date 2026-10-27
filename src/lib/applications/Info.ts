@@ -10,18 +10,18 @@ class Info implements Command {
 		return [
 			`${this.name}: ${this.desc}`,
 			`\tUsage: ${this.name}`,
-			`\t       ${this.name} [filePath]`,
+			`\t       ${this.name} [path]`,
 			"\tArgs:",
-			"\t\tfilePath: path to file to inspect the metadata for"
+			"\t\tpath: path to object to inspect the metadata for"
 		];
 	}
 
 	public parseArgs(args: string[]): Map<string, string> {
 		let map = new Map<string, string>();
 
-		let filePath = args[0];
-		if (filePath) {
-			map.set("filePath", filePath);
+		let path = args[0];
+		if (path) {
+			map.set("path", path);
 		}
 
 		return map;
@@ -35,20 +35,29 @@ class Info implements Command {
 			return;
 		}
 
-		let filePath = args.get("filePath");
-		if (!filePath) {
+		let path = args.get("path");
+		if (!path) {
 			terminal.printerr("info: no file path provided");
 			return;
 		}
 
 		// Parse file path for validity
-		let dir = files.find(filePath, "f");
+		let dir = files.find(path, "f");
 		if (!dir) {
-			terminal.printerr(`info: invalid file path: ${filePath}`);
+			// Try getting as directory
+			let dir = files.find(path, "d");
+			if (!dir) {
+				terminal.printerr(`info: invalid path: ${path}`);
+				return;
+			}
+
+			terminal.println(JSON.stringify(dir.metadata, null, 2));
+			dir.metadata.dateAccessed = dir.metadata.now();
+
 			return;
 		}
 
-		let file = dir.getFile(files.extractName(filePath))!;
+		let file = dir.getFile(files.extractName(path))!;
 		terminal.println(JSON.stringify(file.metadata, null, 2));
 
 		file.metadata.dateAccessed = file.metadata.now();
