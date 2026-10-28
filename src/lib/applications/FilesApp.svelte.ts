@@ -1,6 +1,7 @@
 import { desktop, type Application } from "$lib/components/listeners/Desktop.svelte";
 import { terminal, type Command } from "$lib/components/listeners/Terminal.svelte";
 import { File, Directory, fileSystem } from "$lib/components/FileSystem.svelte";
+import InputDialog from "$lib/utils/InputDialog.svelte";
 
 // TODO: Create a mv shortcut to rename or move files / directories
 // TODO: Add shortcut ctrl+n to create a new file and ctrl+shift+n to create directory (add respective buttons to left side of address bar)
@@ -33,6 +34,9 @@ class FilesApp implements Command, Application {
 	public input: HTMLInputElement | undefined = $state(undefined);
 	public searchedDir: Directory | null = $state(null);
 	public navPath: string = $state(""); // Represents the user's input; will be overriden if truePath points to a valid directory
+
+	// Dialog box
+	public dialog = $state<ReturnType<typeof InputDialog> | null>(null);
 
 	public help(args?: string[]): string[] {
 		return [
@@ -192,6 +196,7 @@ class FilesApp implements Command, Application {
 		this.onAppShow(); // Reset the state of FilesApp when reloading from localStorage (even though its not an app reload)
 	}
 
+	// TODO: Fix ls not being able to list the contents of the directory in ls [dirName]
 	public ls(): void {
 		let arr = this.cwd.getAll();
 		if (arr.length === 0) {
@@ -573,12 +578,54 @@ class FilesApp implements Command, Application {
 
 	// Application handlers
 
-	public newFolder(): void {
+	public async handleNewFolder(): Promise<void> {
+		if (!this.dialog) {
+			return;
+		}
 
+		if (!this.searchedDir) {
+			throw new Error("files: handleNewFolder: searchedDir doesn't exist");
+		}
+
+		let name = await this.dialog.ask({
+			prompt: "New Folder Name:",
+			placeholder: "New Folder"
+		});
+
+		if (!name) {
+			throw new Error("files: handleNewFolder: invalid name");
+		}
+
+		// Attempt to create it, otherwise throw error
+		let result = this.searchedDir.createDir(name);
+		if (!result) {
+			throw new Error(`files: handleNewFolder: error when creating directory: ${name}`);
+		}
 	}
 
-	public newFile(): void {
-		
+	public async handleNewFile(): Promise<void> {
+		if (!this.dialog) {
+			return;
+		}
+
+		if (!this.searchedDir) {
+			throw new Error("files: handleNewFile: searchedDir doesn't exist");
+		}
+
+		let name = await this.dialog.ask({
+			prompt: "New File Name:",
+			placeholder: "New File.txt"
+		});
+
+		if (!name) {
+			throw new Error("files: handleNewFile: invalid name");
+		}
+
+		// Attempt to create it, otherwise throw error
+		let result = this.searchedDir.createFile(name);
+		if (!result) {
+			throw new Error(`files: handleNewFile: error when creating directory: ${name}`);
+		}
 	}
 
 	public onAppShow(): void {
