@@ -8,6 +8,11 @@ declare global {
 		// interface PageState {}
 		// interface Platform {}
 	}
+
+	// Allow for YT iframe injection
+	interface Window {
+		onYouTubeIframeAPIReady?: () => void;
+	}
 }
 
 export {};

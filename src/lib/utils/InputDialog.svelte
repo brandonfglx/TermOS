@@ -1,5 +1,5 @@
 <script lang="ts">
-	interface DialogOptions {
+	interface InputDialogOptions {
 		prompt?: string,
 		placeholder?: string,
 	}
@@ -9,10 +9,10 @@
 	let prompt: string = $state("");
 	let placeholder: string = $state("");
 
-	// Tracks whether the promise is currently active and holds callback
+	// Tracks whether the promise is currently active using callback
 	let resolve: ((value: string | null) => void) | null = null;
 
-	export function ask(options: DialogOptions = {}): Promise<string | null> {
+	export function ask(options: InputDialogOptions = {}): Promise<string | null> {
 		prompt = options.prompt ?? "Enter value:";
 		placeholder = options.placeholder ?? "";
 		input = "";
@@ -43,7 +43,7 @@
 
 <!-- InputDialouge represents a "hidden" basic popup dialouge that asks any generic input and automatically handles formatting -->
 <dialog class="w-full h-full flex justify-center items-center bg-transparent backdrop-blur-[2px]" bind:this={dialog} onclose={handleClose}>
-	<form class="text-light-fg dark:text-dark-fg bg-[#f0f0f0] dark:bg-[#101010] p-6 rounded-lg font-mono text-base flex flex-col gap-4 justify-cente" method="dialog">
+	<form class="text-light-fg dark:text-dark-fg bg-[#f0f0f0] dark:bg-[#101010] p-6 rounded-lg font-mono text-base flex flex-col gap-4 justify-center" method="dialog">
 		<div class="flex flex-row items-center gap-2">
 			<label for="input">{prompt}</label>
 			<input id="input" class="bg-term-light-bg dark:bg-term-dark-bg border-none outline-none focus:outline-none focus:ring-0" type="text" bind:value={input} placeholder={placeholder} required/>
