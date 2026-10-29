@@ -78,6 +78,7 @@ class TextApp implements Command, Application {
 		return map;
 	}
 	
+	// TODO: Fix creating intermediary directories on launch - text foo/bar/moo.txt
 	public execute(args: Map<string, string>): void {
 		// Validate or create file
 		let path = args.get("path");

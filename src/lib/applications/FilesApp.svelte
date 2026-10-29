@@ -1,10 +1,12 @@
 <script lang="ts">
+    import InputDialog from "$lib/utils/InputDialog.svelte";
 	import { app as files } from "./FilesApp.svelte.ts";
 </script>
 
 <!-- SVGs are licensed under CC Attribution 4.0 International from https://www.svgrepo.com/author/Dazzle%20UI/ and MIT License from Zest -->
 <div class="h-full w-full overflow-y-auto flex flex-col">
-	<div class="bg-term-light-bg dark:bg-term-dark-bg font-mono text-base flex flex-row">
+	<!-- Nav bar -->
+	<div class="bg-[#f0f0f0] dark:bg-[#101010] p-1.5 font-mono text-base flex flex-row gap-2">
 		<!-- Back and Forth arrows -->
 		<button class="w-8 cursor-pointer bg-transparent border-none p-0 flex items-center justify-center" aria-label="Back" onclick={() => {files.nav(-1)}}>
 			<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -29,21 +31,34 @@
 				}
 			}}
 		/>
+
+		<!-- Create new dir and file buttons -->
+		<button class="w-8 cursor-pointer bg-transparent border-none p-0 flex items-center justify-center" aria-label="New Folder" onclick={() => {files.handleNewFolder()}}>
+			<svg class="" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+				<path fill-rule="evenodd" clip-rule="evenodd" d="M14.5 2H7.71l-.85-.85L6.51 1h-5l-.5.5v11l.5.5H7v-1H1.99V6h4.49l.35-.15.86-.86H14v1.5l-.001.51h1.011V2.5L14.5 2zm-.51 2h-6.5l-.35.15-.86.86H2v-3h4.29l.85.85.36.15H14l-.01.99zM13 16h-1v-3H9v-1h3V9h1v3h3v1h-3v3z"/>
+			</svg>
+		</button>
+		<button class="w-8 cursor-pointer bg-transparent border-none p-0 flex items-center justify-center" aria-label="New File" onclick={() => {files.handleNewFile()}}>
+			<svg class="" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+				<path fill-rule="evenodd" clip-rule="evenodd" d="M9.5 1.1l3.4 3.5.1.4v2h-1V6H8V2H3v11h4v1H2.5l-.5-.5v-12l.5-.5h6.7l.3.1zM9 2v3h2.9L9 2zm4 14h-1v-3H9v-1h3V9h1v3h3v1h-3v3z"/>
+			</svg>
+		</button>
 	</div>
+	<!-- Content -->
 	<div class="w-full h-full flex-1 font-mono text-base flex flex-col">
 		{#if !files.searchedDir}
 			<div class="w-full h-full flex flex-col justify-center items-center gap-4">
 				<svg class="w-24" viewBox="0 0 12 12" xmlns="http://www.w3.org/2000/svg">
 					<path d="M6,0C2.6862793,0,0,2.6862793,0,6s2.6862793,6,6,6s6-2.6862793,6-6S9.3137207,0,6,0z M6.5,9.5h-1v-1h1V9.5z M7.2651367,6.1738281C6.7329102,6.5068359,6.5,6.6845703,6.5,7v0.5h-1V7c0-0.9023438,0.7138672-1.3486328,1.2348633-1.6738281  C7.2670898,4.9931641,7.5,4.8154297,7.5,4.5c0-0.5517578-0.4487305-1-1-1h-1c-0.5512695,0-1,0.4482422-1,1V5h-1V4.5  c0-1.1025391,0.8969727-2,2-2h1c1.1030273,0,2,0.8974609,2,2C8.5,5.4023438,7.7861328,5.8486328,7.2651367,6.1738281z" fill="currentColor"/>
 				</svg>
-				<h1>"{files.navPath}" doesn't exist!</h1>
+				<h1 class="text-xl text-center">"{files.navPath}" doesn't exist!</h1>
 			</div>
 		{:else if files.searchedDir.getAll().length === 0}
 			<div class="w-full h-full flex flex-col justify-center items-center gap-4">
 				<svg class="w-24" viewBox="0 0 12 12" xmlns="http://www.w3.org/2000/svg">
 					<path d="M6,0C2.6862793,0,0,2.6862793,0,6s2.6862793,6,6,6s6-2.6862793,6-6S9.3137207,0,6,0z M6.5,9.5h-1v-1h1V9.5z M7.2651367,6.1738281C6.7329102,6.5068359,6.5,6.6845703,6.5,7v0.5h-1V7c0-0.9023438,0.7138672-1.3486328,1.2348633-1.6738281  C7.2670898,4.9931641,7.5,4.8154297,7.5,4.5c0-0.5517578-0.4487305-1-1-1h-1c-0.5512695,0-1,0.4482422-1,1V5h-1V4.5  c0-1.1025391,0.8969727-2,2-2h1c1.1030273,0,2,0.8974609,2,2C8.5,5.4023438,7.7861328,5.8486328,7.2651367,6.1738281z" fill="currentColor"/>
 				</svg>
-				<h1>"{files.searchedDir.getPath()}" doesn't contain any files or directories!</h1>
+				<h1 class="text-xl text-center">"{files.searchedDir.getPath()}" doesn't contain any files or directories!</h1>
 			</div>
 		{:else}
 			<!-- Column Titles -->
@@ -85,3 +100,5 @@
 		{/if}
 	</div>
 </div>
+
+<InputDialog bind:this={files.dialog} />

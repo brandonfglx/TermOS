@@ -1,7 +1,11 @@
 import { desktop, type Application } from "$lib/components/listeners/Desktop.svelte";
 import { terminal, type Command } from "$lib/components/listeners/Terminal.svelte";
 import { File, Directory, fileSystem } from "$lib/components/FileSystem.svelte";
+import InputDialog from "$lib/utils/InputDialog.svelte";
 
+// TODO: Create a mv shortcut to rename or move files / directories
+// TODO: Add shortcut ctrl+n to create a new file and ctrl+shift+n to create directory (add respective buttons to left side of address bar)
+// TODO: Maybe add context menu to rename items, show info, etc. as popup menus
 class FilesApp implements Command, Application {
 	public name: string = "files";
 	public desc: string = "access files in a virtual file system and save it in LocalStorage";
@@ -9,6 +13,7 @@ class FilesApp implements Command, Application {
 		"alias ls files ls",
 		"alias touch files touch",
 		"alias rm files rm",
+		"alias mv files mv",
 		"alias cat files cat",
 		"alias mkdir files mkdir",
 		"alias cd files cd",
@@ -30,6 +35,9 @@ class FilesApp implements Command, Application {
 	public searchedDir: Directory | null = $state(null);
 	public navPath: string = $state(""); // Represents the user's input; will be overriden if truePath points to a valid directory
 
+	// Dialog box
+	public dialog = $state<ReturnType<typeof InputDialog> | null>(null);
+
 	public help(args?: string[]): string[] {
 		return [
 			`${this.name}: ${this.desc}`,
@@ -41,6 +49,7 @@ class FilesApp implements Command, Application {
 			"\t\t\tRequires path:",
 			"\t\t\t\ttouch: create a file",
 			"\t\t\t\trm: remove a file",
+			"\t\t\t\tmv: move a file or directory (use -d to favor directory over files if there is overlap)",
 			"\t\t\t\tcat: prints a file's contents",
 			"\t\t\t\tmkdir: create a directory",
 			"\t\t\t\tcd: change directory",
@@ -128,29 +137,35 @@ class FilesApp implements Command, Application {
 		// Calls appropriate action
 		switch (action) {
 			case "touch":
-				let succededTouch = this.touch(etc, remArgs);
-				if (!succededTouch) {
+				let succeededTouch = this.touch(etc, remArgs);
+				if (!succeededTouch) {
 					throw new Error(`files touch: failed to create file: ${etc}`);
 				}
 				break;
 			case "rm":
-				let succededRm = this.rm(etc, remArgs);
-				if (!succededRm) {
+				let succeededRm = this.rm(etc, remArgs);
+				if (!succeededRm) {
 					throw new Error(`files rm: failed to remove: ${etc}`);
+				}
+				break;
+			case "mv":
+				let succeededMv = this.mv(etc, remArgs);
+				if (!succeededMv) {
+					throw new Error(`files mv: failed to move: ${etc}`);
 				}
 				break;
 			case "cat":
 				this.cat(etc, remArgs);
 				break;
 			case "mkdir":
-				let succededMkdir = this.mkdir(etc, remArgs);
-				if (!succededMkdir) {
+				let succeededMkdir = this.mkdir(etc, remArgs);
+				if (!succeededMkdir) {
 					throw new Error(`files mkdir: failed to create directory: ${etc}`);
 				}
 				break;
 			case "cd":
-				let succededCd = this.cd(etc, remArgs);
-				if (!succededCd) {
+				let succeededCd = this.cd(etc, remArgs);
+				if (!succeededCd) {
 					throw new Error(`files cd: failed to change directory: ${etc}`);
 				}
 				break;
@@ -181,6 +196,7 @@ class FilesApp implements Command, Application {
 		this.onAppShow(); // Reset the state of FilesApp when reloading from localStorage (even though its not an app reload)
 	}
 
+	// TODO: Fix ls not being able to list the contents of the directory in ls [dirName]
 	public ls(): void {
 		let arr = this.cwd.getAll();
 		if (arr.length === 0) {
@@ -260,6 +276,34 @@ class FilesApp implements Command, Application {
 		}
 	}
 
+	public mv(path: string, args: Map<string, string>): Directory | null {
+		let [target, dest] = path.split(/\s+/).filter(x => x.length > 0);
+		if (!target || !dest) {
+			return null;
+		}
+
+		let [targetDir, targetFile] = this.findAny(target);
+		let destDir = this.find(dest, "d");
+		if (!destDir) {
+			return null;
+		}
+
+		// Prioritize file mv over dir mv (except for when it has "-d")
+		if (args.has("-d") || !targetFile) {
+			if (!targetDir?.parent) {
+				return null;
+			}
+
+			return targetDir.parent.moveDir(targetDir.name, destDir) ? destDir : null;
+		}
+
+		if (!targetFile) {
+			return null;
+		}
+
+		return targetFile.parent.moveFile(targetFile.name, destDir) ? destDir : null;
+	}
+
 	public cat(path: string, args: Map<string, string>): void {
 		let parsed = this.parsePath(path);
 		let file = this.find(parsed, "f")?.getFile(this.extractName(parsed));
@@ -294,7 +338,7 @@ class FilesApp implements Command, Application {
 		}
 
 		// Ask for -r permission, then create dir
-		if (!args.has("-r") || !args.has("--recursive")) {
+		if (!args.has("-r") && !args.has("--recursive")) {
 			throw new Error("files mkdir: creating nested directories needs -r");
 		}
 
@@ -345,7 +389,7 @@ class FilesApp implements Command, Application {
 		this.navPath = dir.getPath();
 	}
 
-	// 
+	//  Sets the given path to the navPath and fetches new searchedDir
 	public preview(path: string): void {
 		this.navPath = path;
 		this.searchedDir = this.resolveDir(path);
@@ -408,14 +452,8 @@ class FilesApp implements Command, Application {
 
 	// Returns the correct directory (or parent directory of file) when user inputs a nested path (d = dir, f = file)
 	public find(path: string, type: "d" | "f"): Directory | null {
-		let dir = this.cwd;
-
-		if (path.startsWith("/")) {
-			dir = fileSystem.root;
-			path = path.substring(1);
-		}
-
-		let pathArr = path.split("/").filter(x => x.length > 0);
+		let dir = fileSystem.root;
+		let pathArr = this.parsePath(path).split("/").filter(x => x.length > 0);
 
 		if (pathArr.length === 0) {
 			return type === "f" ? null : dir;
@@ -441,53 +479,40 @@ class FilesApp implements Command, Application {
 		return dir;
 	}
 
+	// Finds all files and directories with the given path
+	public findAny(path: string): [Directory | null, File | null] {
+		let fileDir = this.find(this.parsePath(path), "f");
+		if (!fileDir) {
+			return [this.find(this.parsePath(path), "d"), null];
+		}
+
+		return [this.find(this.parsePath(path), "d"), fileDir.getFile(this.extractName(path))];
+	}
+
 	// Parses the provided path, replacing relative file paths with absolute ones
 	// NOTE: This method doesn't ensure path validity, yet...
 	public parsePath(path: string): string {
-		// Replace ~ with root path if at beginning
-		if (path.startsWith("~")) {
-			path = fileSystem.root.name + path.substring(1);
+		// Expand ~ to fs ropt
+		if (path === "~" || path.startsWith("~/")) {
+			path = fileSystem.root.getPath() + path.slice(1);
 		}
 
-		// Replace . to cwd if at beginning and if not part of a "hidden" file/dir
-		let next = path.at(1);
-		if (path.startsWith(".") && (!next || (next && next === "/"))) {
-			if (this.cwd.name === next) {
-				path = path.substring(1);
-			} else {
-				path = this.cwd.name + path.substring(1);
-			}
-		}
+		let parts = path.startsWith("/") ? [] : this.cwd.getPath().split("/").filter(x => x.length > 0);
 
-		// If there is no starting value, insert current working directory as reference
-		if (!path.startsWith(fileSystem.root.name) && !path.startsWith("..")) {
-			if (this.cwd.getPath() === fileSystem.root.getPath()) {
-				path = this.cwd.getPath() + path;
-			} else {
-				path = this.cwd.getPath() + "/" + path;
-			}
-		}
-
-		// Parsing .. - make it relate to the previous folder
-		// This requires parsing some-dir/../../ etc. to the end
-		if (path.indexOf("..") !== -1) {
-			let ref = this.cwd;
-			let before = path.substring(0, path.indexOf(".."));
-
-			// Navigate to found parent if possible
-			if (before.length > 0) {
-				let temp = this.find(before, "d");
-				if (!temp) {
-					throw new Error(`files: parsePath: couldn't find directory at: ${before}`);
-				}
-
-				ref = temp;
+		for (let seg of path.split("/")) {
+			if (seg.length === 0 || seg === ".") {
+				continue;
 			}
 
-			return this.parsePath(ref.parent?.getPath() + path.substring(path.indexOf("..") + 2));
+			if (seg === "..") {
+				parts.pop();
+				continue;
+			}
+
+			parts.push(seg);
 		}
 
-		return path;
+		return fileSystem.root.getPath() + parts.join("/");
 	}
 
 	// Finds the parent of the specified dir or file, or null if the dir/file doesn't exist when parsing
@@ -513,7 +538,7 @@ class FilesApp implements Command, Application {
 			return [fileSystem.root, path.substring(fileSystem.root.name.length)];
 		}
 
-		let parent = this.findParent(splitPath);
+		let parent = this.find(splitPath, "d");
 		if (!parent) {
 			return null;
 		}
@@ -552,6 +577,56 @@ class FilesApp implements Command, Application {
 	}
 
 	// Application handlers
+
+	public async handleNewFolder(): Promise<void> {
+		if (!this.dialog) {
+			return;
+		}
+
+		if (!this.searchedDir) {
+			throw new Error("files: handleNewFolder: searchedDir doesn't exist");
+		}
+
+		let name = await this.dialog.ask({
+			prompt: "New Folder Name:",
+			placeholder: "New Folder"
+		});
+
+		if (!name) {
+			throw new Error("files: handleNewFolder: invalid name");
+		}
+
+		// Attempt to create it, otherwise throw error
+		let result = this.searchedDir.createDir(name);
+		if (!result) {
+			throw new Error(`files: handleNewFolder: error when creating directory: ${name}`);
+		}
+	}
+
+	public async handleNewFile(): Promise<void> {
+		if (!this.dialog) {
+			return;
+		}
+
+		if (!this.searchedDir) {
+			throw new Error("files: handleNewFile: searchedDir doesn't exist");
+		}
+
+		let name = await this.dialog.ask({
+			prompt: "New File Name:",
+			placeholder: "New File.txt"
+		});
+
+		if (!name) {
+			throw new Error("files: handleNewFile: invalid name");
+		}
+
+		// Attempt to create it, otherwise throw error
+		let result = this.searchedDir.createFile(name);
+		if (!result) {
+			throw new Error(`files: handleNewFile: error when creating directory: ${name}`);
+		}
+	}
 
 	public onAppShow(): void {
 		// Set current reference directory to cwd
