@@ -1,3 +1,16 @@
+# Release v0.0.8
+Implemented the logic for the Music app:
+ - Add YouTube videos to a playlist using video ID or URL
+ - Batch add videos using a playlist URL (https://www.youtube.com/playlist?list=...)
+ - Shuffle videos using the Fisher-Yates algorithm
+ - Video titles scroll like a marquee
+ - Delete videos with the x button
+ - Videos remain intact when exiting the app (but not the TermOS tab)
+
+Some known issues:
+ - Titles do not generate for videos (this is caused by a limitation with the YT embed API - accessing titles would require an API key & cost credits)
+ - Random errors inside console (depends on browser, but Firfox + uBlock Origin may throw CORS errors that don't impact playback)
+
 # Release v0.0.1 - v0.0.7a (Prep Week 2 - Week 1)
 Implemented the following:
  - alias: toggles aliases to commands; aliases are used if a command doesn't exist
