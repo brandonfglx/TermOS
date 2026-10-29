@@ -7,7 +7,7 @@
 </div>
 
 > [!NOTE]
-> TermOS is currently in alpha. Some features may not be complete!
+> TermOS is currently in alpha. Some features may not be complete! Check out the change log [here.](./CHANGELOG.md)
 
 ## Quick Start
 Try TermOS [here!](https://brandonfglx.github.io/TermOS)
