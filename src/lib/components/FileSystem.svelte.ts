@@ -45,6 +45,10 @@ export class File {
 
 		return parentPath + "/" + this.name;
 	}
+
+	static isFile(obj: any): obj is File {
+		return obj instanceof File;
+	}
 }
 
 export class Directory {
@@ -113,8 +117,13 @@ export class Directory {
 
 	public moveDir(name: string, target: Directory, force: boolean = false): boolean {
 		let dir = this.getDir(name);
-		if (!dir || (!force && (target === this || target.hasFile(name)))) {
+		if (!dir || (!force && target.hasDir(name))) {
 			return false;
+		}
+
+		// Ensure no duplicates can occur
+		if (force && target.hasDir(name)) {
+			target.removeDir(name);
 		}
 
 		// Prevent moving a (parent) directory into itself or a descendant
@@ -131,21 +140,70 @@ export class Directory {
 		target.dirs.push(dir);
 		dir.parent = target;
 
-		// Update metadata
+		// Update metadata including children
 		dir.metadata.moved();
+		dir.getAll().forEach((obj) => {
+			obj.metadata.moved();
+		});
 		
 		return true;
 	}
 
 	public moveFile(name: string, target: Directory, force: boolean = false): boolean {
 		let file = this.getFile(name);
-		if (!file || (!force && (target === this || target.hasFile(name)))) {
+		if (!file || (!force && target.hasFile(name))) {
 			return false;
+		}
+
+		// Ensure no duplicates can occur
+		if (force && target.hasFile(name)) {
+			target.removeFile(name);
 		}
 
 		this.files.splice(this.files.indexOf(file), 1);
 		target.files.push(file);
 		file.parent = target;
+
+		// Update metadata
+		file.metadata.moved();
+
+		return true;
+	}
+
+	public renameDir(name: string, newName: string, force: boolean = false): boolean {
+		let dir = this.getDir(name);
+		if (!dir || (!force && this.hasDir(newName))) {
+			return false;
+		}
+
+		// Remove duplicates
+		if (force && this.hasDir(newName)) {
+			this.removeDir(newName);
+		}
+
+		dir.name = newName;
+
+		// Update metadata including children
+		dir.metadata.moved();
+		dir.getAll().forEach((obj) => {
+			obj.metadata.moved();
+		});
+		
+		return true;
+	}
+
+	public renameFile(name: string, newName: string, force: boolean = false): boolean {
+		let file = this.getFile(name);
+		if (!file || (!force && this.getFile(newName))) {
+			return false;
+		}
+
+		// Remove duplicates
+		if (force && this.getFile(newName)) {
+			this.removeFile(newName);
+		}
+
+		file.name = newName;
 
 		// Update metadata
 		file.metadata.moved();
@@ -240,6 +298,10 @@ export class Directory {
 		if (this.parent) {
 			this.parent.update();
 		}
+	}
+
+	static isDirectory(obj: any): obj is Directory {
+		return obj instanceof Directory;
 	}
 }
 

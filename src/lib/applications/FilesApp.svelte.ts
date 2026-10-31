@@ -2,9 +2,9 @@ import { desktop, type Application } from "$lib/components/listeners/Desktop.sve
 import { terminal, type Command } from "$lib/components/listeners/Terminal.svelte";
 import { File, Directory, fileSystem } from "$lib/components/FileSystem.svelte";
 import InputDialog from "$lib/utils/InputDialog.svelte";
+import InfoDialog from "$lib/utils/InfoDialog.svelte";
 
-// TODO: Create a mv shortcut to rename or move files / directories
-// TODO: Add shortcut ctrl+n to create a new file and ctrl+shift+n to create directory (add respective buttons to left side of address bar)
+// TODO: Fix InputDialog not stretching entire application screen (should not cover header bar or terminal) and causing errors with loading onto DOM when using shortcut - also shift+ctrl+n shortcut doesn't register with method at all
 // TODO: Maybe add context menu to rename items, show info, etc. as popup menus
 class FilesApp implements Command, Application {
 	public name: string = "files";
@@ -35,8 +35,9 @@ class FilesApp implements Command, Application {
 	public searchedDir: Directory | null = $state(null);
 	public navPath: string = $state(""); // Represents the user's input; will be overriden if truePath points to a valid directory
 
-	// Dialog box
-	public dialog = $state<ReturnType<typeof InputDialog> | null>(null);
+	// Dialogs
+	public inputDialog = $state<ReturnType<typeof InputDialog> | null>(null);
+	public infoDialog = $state<ReturnType<typeof InfoDialog> | null>(null);
 
 	public help(args?: string[]): string[] {
 		return [
@@ -118,7 +119,7 @@ class FilesApp implements Command, Application {
 		// No path/"etc" value needed
 		switch (action) {
 			case "ls":
-				this.ls();
+				this.ls(args.get("etc"), args);
 				return;
 			case "pwd":
 				this.pwd();
@@ -196,9 +197,19 @@ class FilesApp implements Command, Application {
 		this.onAppShow(); // Reset the state of FilesApp when reloading from localStorage (even though its not an app reload)
 	}
 
-	// TODO: Fix ls not being able to list the contents of the directory in ls [dirName]
-	public ls(): void {
-		let arr = this.cwd.getAll();
+	public ls(path: string | undefined, args: Map<string, string>): void {
+		let arr: (Directory | File)[];
+		if (!path) {
+			arr = this.cwd.getAll();
+		} else {
+			let dir = this.find(path, "d");
+			if (!dir) {
+				return;
+			}
+
+			arr = dir.getAll();
+		}
+
 		if (arr.length === 0) {
 			return;
 		}
@@ -276,6 +287,7 @@ class FilesApp implements Command, Application {
 		}
 	}
 
+	// TODO: Allow mv to rename files (move to same directory)
 	public mv(path: string, args: Map<string, string>): Directory | null {
 		let [target, dest] = path.split(/\s+/).filter(x => x.length > 0);
 		if (!target || !dest) {
@@ -285,7 +297,42 @@ class FilesApp implements Command, Application {
 		let [targetDir, targetFile] = this.findAny(target);
 		let destDir = this.find(dest, "d");
 		if (!destDir) {
-			return null;
+			let valid = this.findValidParent(dest);
+			if (!valid) {
+				return null; // No viable parent found
+			}
+
+			let parent = valid[0];
+			let rem = valid[1];
+
+			// If rem is empty, then rename file instead
+			if (rem.length === 0) {
+				if (args.has("-d") || !targetFile) {
+					if (!targetDir?.parent) {
+						return null;
+					}
+
+					return targetDir.parent.renameDir(targetDir.name, this.extractName(dest)) ? targetDir : null;
+				}
+
+				return targetFile.parent.renameFile(targetFile.name, this.extractName(dest)) ? targetFile.parent : null;
+			}
+
+			if (!args.has("-r") && !args.has("--recursive")) {
+				return null;
+			}
+
+			// Create all remaining directories
+			for (let name of rem.split("/")) {
+				let dir = parent.createDir(name);
+				if (!dir) {
+					return null;
+				}
+
+				parent = dir;
+			}
+
+			destDir = parent;
 		}
 
 		// Prioritize file mv over dir mv (except for when it has "-d")
@@ -295,10 +342,6 @@ class FilesApp implements Command, Application {
 			}
 
 			return targetDir.parent.moveDir(targetDir.name, destDir) ? destDir : null;
-		}
-
-		if (!targetFile) {
-			return null;
 		}
 
 		return targetFile.parent.moveFile(targetFile.name, destDir) ? destDir : null;
@@ -450,6 +493,11 @@ class FilesApp implements Command, Application {
 		}
 	}
 
+	// Shows the information of a file or directory using InfoDialog
+	public inspect(index: number): void {
+		console.log(index);
+	}
+
 	// Returns the correct directory (or parent directory of file) when user inputs a nested path (d = dir, f = file)
 	public find(path: string, type: "d" | "f"): Directory | null {
 		let dir = fileSystem.root;
@@ -525,30 +573,28 @@ class FilesApp implements Command, Application {
 		return this.find(parentPath, "d");
 	}
 
-	// Finds the parent of the specified dir or file as low in the directory tree as possible to the closest parent
+	// Finds the parent of the specified dir or file as low in the directory tree as possible to the closest parent by walking upwards and retrying using find
 	private findValidParent(path: string): [Directory, string] | null {
-		let splitPath = path;
+		path = this.parsePath(path);
 
-		// Iterates until splitPath finds a valid parent; splitPath returns path of parent, or empty if at root
+		let split = path;
+		let dir: Directory | null;
 		do {
-			splitPath = splitPath.substring(0, splitPath.lastIndexOf("/"));
-		} while (splitPath.trim().replaceAll("/", "").length > 0 && this.findParent(splitPath) === null);
+			dir = this.find(split, "d");
+			split = split.substring(0, Math.max(0, split.lastIndexOf("/")));
+		} while (!dir && split.length > 0);
 
-		if (splitPath.length === 0) {
-			return [fileSystem.root, path.substring(fileSystem.root.name.length)];
-		}
-
-		let parent = this.find(splitPath, "d");
-		if (!parent) {
+		if (!dir || split.length === 0) {
 			return null;
 		}
 
-		return [parent, path.substring(splitPath.length + 1)];
+		return [dir, path.substring(split.length)];
 	}
 
 	// Extracts the name of the dir/file with this path.
 	public extractName(path: string): string {
-		return path.substring(path.lastIndexOf("/") + 1);
+		let parsed = this.parsePath(path);
+		return parsed.substring(parsed.lastIndexOf("/") + 1);
 	}
 
 	// Returns a string representing the bytes converted to its most convienient value
@@ -579,52 +625,52 @@ class FilesApp implements Command, Application {
 	// Application handlers
 
 	public async handleNewFolder(): Promise<void> {
-		if (!this.dialog) {
+		if (!this.inputDialog) {
 			return;
 		}
 
 		if (!this.searchedDir) {
-			throw new Error("files: handleNewFolder: searchedDir doesn't exist");
+			return Promise.reject("files: handleNewFolder: searchedDir doesn't exist");
 		}
 
-		let name = await this.dialog.ask({
+		let name = await this.inputDialog.ask({
 			prompt: "New Folder Name:",
 			placeholder: "New Folder"
 		});
 
 		if (!name) {
-			throw new Error("files: handleNewFolder: invalid name");
+			return Promise.reject("files: handleNewFolder: invalid name");
 		}
 
 		// Attempt to create it, otherwise throw error
 		let result = this.searchedDir.createDir(name);
 		if (!result) {
-			throw new Error(`files: handleNewFolder: error when creating directory: ${name}`);
+			return Promise.reject(`files: handleNewFolder: error when creating directory: ${name}`);
 		}
 	}
 
 	public async handleNewFile(): Promise<void> {
-		if (!this.dialog) {
+		if (!this.inputDialog) {
 			return;
 		}
 
 		if (!this.searchedDir) {
-			throw new Error("files: handleNewFile: searchedDir doesn't exist");
+			return Promise.reject("files: handleNewFile: searchedDir doesn't exist");
 		}
 
-		let name = await this.dialog.ask({
+		let name = await this.inputDialog.ask({
 			prompt: "New File Name:",
 			placeholder: "New File.txt"
 		});
 
 		if (!name) {
-			throw new Error("files: handleNewFile: invalid name");
+			return Promise.reject("files: handleNewFile: invalid name");
 		}
 
 		// Attempt to create it, otherwise throw error
 		let result = this.searchedDir.createFile(name);
 		if (!result) {
-			throw new Error(`files: handleNewFile: error when creating directory: ${name}`);
+			return Promise.reject(`files: handleNewFile: error when creating directory: ${name}`);
 		}
 	}
 
@@ -640,12 +686,22 @@ class FilesApp implements Command, Application {
 		
 	}
 
+	// TODO: Add shortcut ctrl+n to create a new file and ctrl+shift+n to create directory (add respective buttons to left side of address bar)
 	public keydown(event: KeyboardEvent): void {
 		switch (event.key) {
 			case "q":
 			case "c":
 				if (event.ctrlKey) {
 					desktop.quit();
+				}
+				break;
+			case "n":
+				if (event.ctrlKey) {
+					if (event.shiftKey) {
+						this.handleNewFolder();
+					} else {
+						this.handleNewFile();
+					}
 				}
 				break;
 		}

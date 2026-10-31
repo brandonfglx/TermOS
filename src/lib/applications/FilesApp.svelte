@@ -1,13 +1,11 @@
 <script lang="ts">
+    import InfoDialog from "$lib/utils/InfoDialog.svelte";
     import InputDialog from "$lib/utils/InputDialog.svelte";
 	import { app as files } from "./FilesApp.svelte.ts";
 </script>
 
-<!-- SVGs are licensed under CC Attribution 4.0 International from https://www.svgrepo.com/author/Dazzle%20UI/ and MIT License from Zest -->
 <div class="h-full w-full overflow-y-auto flex flex-col">
-	<!-- Nav bar -->
 	<div class="bg-[#f0f0f0] dark:bg-[#101010] p-1.5 font-mono text-base flex flex-row gap-2">
-		<!-- Back and Forth arrows -->
 		<button class="w-8 cursor-pointer bg-transparent border-none p-0 flex items-center justify-center" aria-label="Back" onclick={() => {files.nav(-1)}}>
 			<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
 				<path fill-rule="evenodd" clip-rule="evenodd" d="M11.707 4.293a1 1 0 0 1 0 1.414L6.414 11H20a1 1 0 1 1 0 2H6.414l5.293 5.293a1 1 0 0 1-1.414 1.414l-7-7a1 1 0 0 1 0-1.414l7-7a1 1 0 0 1 1.414 0z" fill="currentColor"/>
@@ -19,7 +17,6 @@
 			</svg>
 		</button>
 
-		<!-- File path to dir -->
 		<input 
 			type="text"
 			class="bg-term-light-bg dark:bg-term-dark-bg flex-1 border-none outline-none focus:outline-none focus:ring-0"
@@ -32,19 +29,17 @@
 			}}
 		/>
 
-		<!-- Create new dir and file buttons -->
-		<button class="w-8 cursor-pointer bg-transparent border-none p-0 flex items-center justify-center" aria-label="New Folder" onclick={() => {files.handleNewFolder()}}>
+		<button class="w-8 cursor-pointer bg-transparent border-none p-0 flex items-center justify-center focus:outline-none focus:ring-0" aria-label="New Folder" onclick={() => {files.handleNewFolder()}}>
 			<svg class="" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
 				<path fill-rule="evenodd" clip-rule="evenodd" d="M14.5 2H7.71l-.85-.85L6.51 1h-5l-.5.5v11l.5.5H7v-1H1.99V6h4.49l.35-.15.86-.86H14v1.5l-.001.51h1.011V2.5L14.5 2zm-.51 2h-6.5l-.35.15-.86.86H2v-3h4.29l.85.85.36.15H14l-.01.99zM13 16h-1v-3H9v-1h3V9h1v3h3v1h-3v3z"/>
 			</svg>
 		</button>
-		<button class="w-8 cursor-pointer bg-transparent border-none p-0 flex items-center justify-center" aria-label="New File" onclick={() => {files.handleNewFile()}}>
+		<button class="w-8 cursor-pointer bg-transparent border-none p-0 flex items-center justify-center focus:outline-none focus:ring-0" aria-label="New File" onclick={() => {files.handleNewFile()}}>
 			<svg class="" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
 				<path fill-rule="evenodd" clip-rule="evenodd" d="M9.5 1.1l3.4 3.5.1.4v2h-1V6H8V2H3v11h4v1H2.5l-.5-.5v-12l.5-.5h6.7l.3.1zM9 2v3h2.9L9 2zm4 14h-1v-3H9v-1h3V9h1v3h3v1h-3v3z"/>
 			</svg>
 		</button>
 	</div>
-	<!-- Content -->
 	<div class="w-full h-full flex-1 font-mono text-base flex flex-col">
 		{#if !files.searchedDir}
 			<div class="w-full h-full flex flex-col justify-center items-center gap-4">
@@ -61,7 +56,6 @@
 				<h1 class="text-xl text-center">"{files.searchedDir.getPath()}" doesn't contain any files or directories!</h1>
 			</div>
 		{:else}
-			<!-- Column Titles -->
 			<div class="w-full flex flex-row items-center font-mono text-base">
 				<div class="w-12 m-4 shrink-0"></div>
 				<div class="flex-1 flex flex-row justify-around items-center">
@@ -72,8 +66,7 @@
 			</div>
 			{#each files.searchedDir.getAll() as object, index}
 				{#if "dirs" in object}
-					<!-- Directory -->
-					<button type="button" class="w-full text-left text-inherit font-inherit p-0 m-0 bg-transparent border-none appearance-none cursor-pointer flex flex-row items-center" onclick={() => files.open(index)}>
+					<button type="button" class="w-full text-left text-inherit font-inherit p-0 m-0 bg-transparent border-none appearance-none cursor-pointer flex flex-row items-center" onclick={() => files.open(index)} oncontextmenu={(event) => { event.preventDefault(); files.inspect(index); }}>
 						<svg class="w-12 m-4 shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
 							<path d="M3 8.2C3 7.07989 3 6.51984 3.21799 6.09202C3.40973 5.71569 3.71569 5.40973 4.09202 5.21799C4.51984 5 5.0799 5 6.2 5H9.67452C10.1637 5 10.4083 5 10.6385 5.05526C10.8425 5.10425 11.0376 5.18506 11.2166 5.29472C11.4184 5.4184 11.5914 5.59135 11.9373 5.93726L12.0627 6.06274C12.4086 6.40865 12.5816 6.5816 12.7834 6.70528C12.9624 6.81494 13.1575 6.89575 13.3615 6.94474C13.5917 7 13.8363 7 14.3255 7H17.8C18.9201 7 19.4802 7 19.908 7.21799C20.2843 7.40973 20.5903 7.71569 20.782 8.09202C21 8.51984 21 9.0799 21 10.2V15.8C21 16.9201 21 17.4802 20.782 17.908C20.5903 18.2843 20.2843 18.5903 19.908 18.782C19.4802 19 18.9201 19 17.8 19H6.2C5.07989 19 4.51984 19 4.09202 18.782C3.71569 18.5903 3.40973 18.2843 3.21799 17.908C3 17.4802 3 16.9201 3 15.8V8.2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
 						</svg>
@@ -84,8 +77,7 @@
 						</div>
 					</button>
 				{:else}
-					<!-- File -->
-					<button type="button" class="w-full text-left text-inherit font-inherit p-0 m-0 bg-transparent border-none appearance-none cursor-pointer flex flex-row items-center" onclick={() => files.open(index)}>
+					<button type="button" class="w-full text-left text-inherit font-inherit p-0 m-0 bg-transparent border-none appearance-none cursor-pointer flex flex-row items-center" onclick={() => files.open(index)} oncontextmenu={(event) => { event.preventDefault(); files.inspect(index); }}>
 						<svg class="w-12 m-4 shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
 							<path d="M19 9V17.8C19 18.9201 19 19.4802 18.782 19.908C18.5903 20.2843 18.2843 20.5903 17.908 20.782C17.4802 21 16.9201 21 15.8 21H8.2C7.07989 21 6.51984 21 6.09202 20.782C5.71569 20.5903 5.40973 20.2843 5.21799 19.908C5 19.4802 5 18.9201 5 17.8V6.2C5 5.07989 5 4.51984 5.21799 4.09202C5.40973 3.71569 5.71569 3.40973 6.09202 3.21799C6.51984 3 7.0799 3 8.2 3H13M19 9L13 3M19 9H14C13.4477 9 13 8.55228 13 8V3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
 						</svg>
@@ -101,4 +93,5 @@
 	</div>
 </div>
 
-<InputDialog bind:this={files.dialog} />
+<InputDialog bind:this={files.inputDialog} />
+<InfoDialog bind:this={files.infoDialog}/>

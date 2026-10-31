@@ -2,6 +2,7 @@ import type { Component } from "svelte";
 import { kbManager, type KeyboardListener } from "../KeyboardManager.svelte";
 import { SvelteMap } from "svelte/reactivity";
 
+// TODO: Implement app switcher
 class Desktop implements KeyboardListener {
 	private apps = $state(new SvelteMap<string, Application>());
 	private comps = $state(new SvelteMap<string, Component>());
@@ -114,7 +115,7 @@ class Desktop implements KeyboardListener {
 	// NOTE: Applications themselves should implement their own KeyboardManager, which captures the events passed by the Desktop
 	//		only if they have elements that need to capture key presses (<input> can still be used as raw, but may conflict with
 	//		KeyboardManager inputs).
-	
+
 	public keydown(event: KeyboardEvent): void {
 		if (this.switching && event.metaKey) {
 			if (event.metaKey && event.key === "Tab" || event.key === "ArrowRight") {
