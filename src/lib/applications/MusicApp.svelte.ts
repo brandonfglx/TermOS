@@ -75,8 +75,11 @@ class MusicApp implements Command, Application {
 
 		if (this.input) {
 			let parsed = this.parseInput(this.input);
-			console.log(parsed);
 			if (!parsed) {
+				this.errorDialog?.error({
+					title: "Video Error",
+					content: `Invalid URL or ID: ${this.input}`
+				});
 				return;
 			}
 
@@ -86,6 +89,10 @@ class MusicApp implements Command, Application {
 			} else if (typeof parsed === "string") {
 				// Cue playlist, read videos, then start playing the first video
 				if (!this.player) {
+					this.errorDialog?.error({
+						title: "Video Error",
+						content: "Player does not exist"
+					});
 					return;
 				}
 
@@ -122,7 +129,13 @@ class MusicApp implements Command, Application {
 			} as Video;
 		}
 
-		let url = new URL(input);
+		let url: URL;
+
+		try {
+			url = new URL(input);
+		} catch {
+			return null;
+		}
 
 		if (!url.hostname.includes("youtube.com") && !url.hostname.includes("youtu.be") && !url.hostname.includes("youtube-nocookie.com")) {
 			return null;
@@ -222,16 +235,32 @@ class MusicApp implements Command, Application {
 		}
 	}
 
-	public playerChange(event: YT.OnStateChangeEvent): void {
+	public async playerChange(event: YT.OnStateChangeEvent): Promise<void> {
 		switch (event.data) {
 			case YT.PlayerState.CUED:
 				// Read playlist contents, then reload player to start fresh with new playlists
 				let ids = this.player?.getPlaylist() ?? [];
+				let errorIds: string[] = [];
 
-				this.playlist = ids.map((id) => this.parseInput(id))
+				this.playlist = ids.map((id) => {
+						let result = this.parseInput(id);
+						if (!result) {
+							errorIds.push(id);
+						}
+						return result;
+					})
 					.filter((v): v is Video => this.isVideo(v));
 				this.playlistIndex = 0;
 
+				// Show errors and await before preceeding
+				if (errorIds.length > 0) {
+					await this.errorDialog?.error({
+						title: "Playlist Error",
+						content: `Invalid IDs:\n${errorIds.join("\n")}`
+					});
+				}
+
+				// Schedule player creation
 				setTimeout(() => this.createPlayer(), 0);
 				break;
 			case YT.PlayerState.PLAYING:

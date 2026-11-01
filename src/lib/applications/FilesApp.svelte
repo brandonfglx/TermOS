@@ -6,8 +6,8 @@
 </script>
 
 <div class="relative h-full w-full">
-	<div class="h-full w-full overflow-y-auto flex flex-col">
-		<div class="bg-[#f0f0f0] dark:bg-[#101010] p-1.5 font-mono text-base flex flex-row gap-2">
+	<div class="h-full w-full overflow-y-auto flex flex-col font-mono text-base">
+		<div class="bg-[#f0f0f0] dark:bg-[#101010] p-1.5 flex flex-row gap-2">
 			<button class="w-8 cursor-pointer bg-transparent border-none p-0 flex items-center justify-center" aria-label="Refresh" onclick={() => files.onAppShow()}>
 				<svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
 					<path d="M23,12A11,11,0,1,1,12,1a10.9,10.9,0,0,1,5.882,1.7l1.411-1.411A1,1,0,0,1,21,2V6a1,1,0,0,1-1,1H16a1,1,0,0,1-.707-1.707L16.42,4.166A8.9,8.9,0,0,0,12,3a9,9,0,1,0,9,9,1,1,0,0,1,2,0Z"/>
@@ -47,7 +47,7 @@
 				</svg>
 			</button>
 		</div>
-		<div class="w-full h-full flex-1 font-mono text-base flex flex-col">
+		<div class="w-full h-full flex-1 flex flex-col">
 			{#if !files.searchedDir}
 				<div class="w-full h-full flex flex-col justify-center items-center gap-4">
 					<svg class="w-24" viewBox="0 0 12 12" xmlns="http://www.w3.org/2000/svg">

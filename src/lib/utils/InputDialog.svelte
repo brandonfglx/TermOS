@@ -78,7 +78,7 @@
 <!-- InputDialouge represents a "hidden" basic popup dialouge that asks any generic input and automatically handles formatting -->
 <dialog class="absolute inset-0 z-100 m-0 w-full h-full max-w-none max-h-none border-0 bg-transparent p-0 outline-none" bind:this={dialog} onclose={handleClose} onkeydown={handleKeydown}>
 	<div class="h-full w-full flex justify-center items-center backdrop-blur-[2px]">
-		<form class="text-light-fg dark:text-dark-fg bg-term-light-bg dark:bg-term-dark-bg p-6 rounded-lg font-mono text-base flex flex-col gap-4 justify-center" method="dialog" onsubmit={handleSubmit}>
+		<form class="text-light-fg dark:text-dark-fg bg-term-light-bg dark:bg-term-dark-bg min-w-1/4 max-w-11/12 p-6 rounded-lg font-mono text-base flex flex-col gap-4 justify-center" method="dialog" onsubmit={handleSubmit}>
 			<div class="flex flex-row items-center gap-2">
 				<label for="input">{prompt}</label>
 				<input id="input" class="bg-[#f0f0f0] dark:bg-[#101010] border-none outline-none focus:outline-none focus:ring-0" type="text" bind:value={input} placeholder={placeholder} required />

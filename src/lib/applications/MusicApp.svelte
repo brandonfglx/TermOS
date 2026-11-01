@@ -38,7 +38,7 @@
 </style>
 
 <div class="relative h-full w-full">
-	<div class="h-full w-full overflow-y-auto flex flex-col">
+	<div class="h-full w-full overflow-y-auto flex flex-row font-mono text-base">
 		<div class="bg-[#f0f0f0] dark:bg-[#101010] h-full min-h-0 w-auto max-w-[25%] min-w-0 overflow-hidden p-2 flex flex-col gap-2">
 			<!-- Control to shuffle and add music -->
 			<div class="shrink-0 min-w-0 flex flex-row flex-wrap gap-2 p-2 bg-[#d8d8d8] dark:bg-[#222222]">
