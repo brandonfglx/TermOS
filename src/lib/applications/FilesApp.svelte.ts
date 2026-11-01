@@ -3,8 +3,8 @@ import { terminal, type Command } from "$lib/components/listeners/Terminal.svelt
 import { File, Directory, fileSystem } from "$lib/components/FileSystem.svelte";
 import InputDialog from "$lib/utils/InputDialog.svelte";
 import InfoDialog from "$lib/utils/InfoDialog.svelte";
+import ErrorDialog from "$lib/utils/ErrorDialog.svelte";
 
-// TODO: Fix InputDialog not stretching entire application screen (should not cover header bar or terminal) and causing errors with loading onto DOM when using shortcut - also shift+ctrl+n shortcut doesn't register with method at all
 // TODO: Maybe add context menu to rename items, show info, etc. as popup menus
 class FilesApp implements Command, Application {
 	public name: string = "files";
@@ -38,6 +38,7 @@ class FilesApp implements Command, Application {
 	// Dialogs
 	public inputDialog = $state<ReturnType<typeof InputDialog> | null>(null);
 	public infoDialog = $state<ReturnType<typeof InfoDialog> | null>(null);
+	public errorDialog = $state<ReturnType<typeof ErrorDialog> | null>(null);
 
 	public help(args?: string[]): string[] {
 		return [
@@ -697,11 +698,12 @@ class FilesApp implements Command, Application {
 				break;
 			case "n":
 				if (event.ctrlKey) {
-					if (event.shiftKey) {
-						this.handleNewFolder();
-					} else {
-						this.handleNewFile();
-					}
+					this.handleNewFile();
+				}
+				break;
+			case "N":
+				if (event.ctrlKey) {
+					this.handleNewFolder();
 				}
 				break;
 		}
