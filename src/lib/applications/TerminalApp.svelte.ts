@@ -1,14 +1,21 @@
 import { kbManager } from "$lib/components/KeyboardManager.svelte";
 import { desktop, type Application } from "$lib/components/listeners/Desktop.svelte";
 import { terminal, type Command } from "$lib/components/listeners/Terminal.svelte";
+import type ErrorDialog from "$lib/utils/ErrorDialog.svelte";
+import type InfoDialog from "$lib/utils/InfoDialog.svelte";
+import InputDialog from "$lib/utils/InputDialog.svelte";
 
 class TerminalApp implements Command, Application {
 	public name: string = "term";
 	public desc: string = "core terminal for TermOS";
 	public evalOnLoad: string[] = [];
 
+	public inputDialog = $state<ReturnType<typeof InputDialog> | null>(null);
+	public infoDialog = $state<ReturnType<typeof InfoDialog> | null>(null);
+	public errorDialog = $state<ReturnType<typeof ErrorDialog> | null>(null);
+
 	public getVersion(): string {
-		return "v0.0.7a";
+		return "v0.0.9";
 	}
 
 	public help(args?: string[]): string[] {

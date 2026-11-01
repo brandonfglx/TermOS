@@ -1,6 +1,6 @@
 import { SvelteMap } from "svelte/reactivity";
 import { kbManager, type KeyboardListener } from "../KeyboardManager.svelte";
-import { app } from "$lib/applications/TerminalApp";
+import { app } from "../../applications/TerminalApp.svelte.ts";
 import { app as files } from "../../applications/FilesApp.svelte.ts";
 
 // TODO: Consider implementing updated parser that can differntiate between spaces (ie. uses "\ " to denote a space, "\" to denote a continuation of a line, and ";" to denote multiple commands to be executed)
