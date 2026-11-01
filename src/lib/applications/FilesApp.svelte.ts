@@ -5,7 +5,6 @@ import InputDialog from "$lib/utils/InputDialog.svelte";
 import InfoDialog from "$lib/utils/InfoDialog.svelte";
 import ErrorDialog from "$lib/utils/ErrorDialog.svelte";
 
-// TODO: Maybe add context menu to rename items, show info, etc. as popup menus
 class FilesApp implements Command, Application {
 	public name: string = "files";
 	public desc: string = "access files in a virtual file system and save it in LocalStorage";
@@ -133,7 +132,11 @@ class FilesApp implements Command, Application {
 
 		let etc = args.get("etc");
 		if (!etc) {
-			throw new Error("files: missing path");
+			this.errorDialog?.error({
+				title: "files",
+				content: "missing path"
+			})
+			return;
 		}
 
 		// Calls appropriate action
@@ -141,19 +144,31 @@ class FilesApp implements Command, Application {
 			case "touch":
 				let succeededTouch = this.touch(etc, remArgs);
 				if (!succeededTouch) {
-					throw new Error(`files touch: failed to create file: ${etc}`);
+					this.errorDialog?.error({
+						title: "files touch:",
+						content: `failed to create file: ${etc}`
+					});
+					return;
 				}
 				break;
 			case "rm":
 				let succeededRm = this.rm(etc, remArgs);
 				if (!succeededRm) {
-					throw new Error(`files rm: failed to remove: ${etc}`);
+					this.errorDialog?.error({
+						title: "files rm:",
+						content: `failed to remove: ${etc}`
+					});
+					return;
 				}
 				break;
 			case "mv":
 				let succeededMv = this.mv(etc, remArgs);
 				if (!succeededMv) {
-					throw new Error(`files mv: failed to move: ${etc}`);
+					this.errorDialog?.error({
+						title: "files mv:",
+						content: `failed to move: ${etc}`
+					});
+					return;
 				}
 				break;
 			case "cat":
@@ -162,13 +177,21 @@ class FilesApp implements Command, Application {
 			case "mkdir":
 				let succeededMkdir = this.mkdir(etc, remArgs);
 				if (!succeededMkdir) {
-					throw new Error(`files mkdir: failed to create directory: ${etc}`);
+					this.errorDialog?.error({
+						title: "files mkdir:",
+						content: `failed to create directory: ${etc}`
+					});
+					return;
 				}
 				break;
 			case "cd":
 				let succeededCd = this.cd(etc, remArgs);
 				if (!succeededCd) {
-					throw new Error(`files cd: failed to change directory: ${etc}`);
+					this.errorDialog?.error({
+						title: "files cd:",
+						content: `failed to change directory: ${etc}`
+					});
+					return;
 				}
 				break;
 			case "save":
@@ -178,20 +201,35 @@ class FilesApp implements Command, Application {
 				this.load();
 				break;
 			default:
-				throw new Error(`files: invalid action: ${args.get("action")}`);
+				this.errorDialog?.error({
+					title: "files:",
+					content: `invalid action: ${args.get("action")}`
+				});
+				break;
 		}
 	}
 
 	// Saves the entire root directory to LocalStorage; returns true if succeeded, false otherwise
 	public save(): void {
-		fileSystem.save();
+		try {
+			fileSystem.save();
+		} catch {
+			this.errorDialog?.error({
+				title: "files save:",
+				content: "Exceeded maximum localStorage capacity. Data was not saved!"
+			});
+		}
 	}
 
 	// Loads the entire root directory from LocalStorage; returns true if succeeded, false otherwise
 	public load(): void {
 		let result = fileSystem.load();
 		if (!result) {
-			throw new Error("files: cannot load root from localStorage");
+			this.errorDialog?.error({
+				title: "files load:",
+				content: "cannot load root from localStorage"
+			});
+			return;
 		}
 
 		this.cwd = fileSystem.root;
@@ -236,6 +274,7 @@ class FilesApp implements Command, Application {
 		terminal.printf(rest, {});
 	}
 
+	// TODO: Allow touch to create intermediary directories
 	public touch(path: string, args: Map<string, string>): File | null {
 		let dir = this.cwd;
 
@@ -276,15 +315,27 @@ class FilesApp implements Command, Application {
 			if (args.has("-r") || args.has("--recursive")) {
 				let parent = potDir.parent;
 				if (!parent) {
-					throw new Error(`files rm: cannot delete directory with no parent`);
+					this.errorDialog?.error({
+						title: "files rm:",
+						content: "cannot delete directory with no parent"
+					});
+					return false;
 				}
 
 				return parent.removeDir(name);
 			} else {
-				throw new Error(`files rm: cannot delete directory at "${parsed}" without -r`);
+				this.errorDialog?.error({
+					title: "files rm:",
+					content: `cannot delete directory at "${parsed}" without -r`
+				});
+				return false;
 			}
 		} else {
-			throw new Error(`files rm: could not find item at "${parsed}"`);
+			this.errorDialog?.error({
+				title: "files rm:",
+				content: `could not find item at ${parsed}`
+			});
+			return false;
 		}
 	}
 
@@ -296,6 +347,7 @@ class FilesApp implements Command, Application {
 		}
 
 		let [targetDir, targetFile] = this.findAny(target);
+		let newName = targetDir?.name ?? targetFile?.name ?? "";
 		let destDir = this.find(dest, "d");
 		if (!destDir) {
 			let valid = this.findValidParent(dest);
@@ -305,35 +357,27 @@ class FilesApp implements Command, Application {
 
 			let parent = valid[0];
 			let rem = valid[1];
+			let destName = rem.substring(Math.max(0, rem.lastIndexOf("/") + 1));
 
-			// If rem is empty, then rename file instead
-			if (rem.length === 0) {
-				if (args.has("-d") || !targetFile) {
-					if (!targetDir?.parent) {
-						return null;
-					}
-
-					return targetDir.parent.renameDir(targetDir.name, this.extractName(dest)) ? targetDir : null;
-				}
-
-				return targetFile.parent.renameFile(targetFile.name, this.extractName(dest)) ? targetFile.parent : null;
-			}
-
-			if (!args.has("-r") && !args.has("--recursive")) {
-				return null;
-			}
-
-			// Create all remaining directories
-			for (let name of rem.split("/")) {
-				let dir = parent.createDir(name);
-				if (!dir) {
+			// Create intermediary directories
+			if (rem.indexOf("/") > -1) {
+				if (!args.has("-r") && !args.has("--recursive")) {
 					return null;
 				}
 
-				parent = dir;
+				// Create all remaining directories
+				for (let name of rem.substring(0, rem.length - destName.length - 1).split("/")) {
+					let dir = parent.createDir(name);
+					if (!dir) {
+						return null;
+					}
+
+					parent = dir;
+				}
 			}
 
 			destDir = parent;
+			newName = destName;
 		}
 
 		// Prioritize file mv over dir mv (except for when it has "-d")
@@ -342,17 +386,21 @@ class FilesApp implements Command, Application {
 				return null;
 			}
 
-			return targetDir.parent.moveDir(targetDir.name, destDir) ? destDir : null;
+			return targetDir.parent.move(targetDir, destDir, newName) ? destDir : null;
 		}
 
-		return targetFile.parent.moveFile(targetFile.name, destDir) ? destDir : null;
+		return targetFile.parent.move(targetFile, destDir, newName) ? destDir : null;
 	}
 
 	public cat(path: string, args: Map<string, string>): void {
 		let parsed = this.parsePath(path);
 		let file = this.find(parsed, "f")?.getFile(this.extractName(parsed));
 		if (!file) {
-			throw new Error(`files: invalid file: ${path}`);
+			this.errorDialog?.error({
+				title: "files cat:",
+				content: `invalid file: ${path}`
+			});
+			return;
 		}
 
 		terminal.println(file.getContent());
@@ -383,7 +431,11 @@ class FilesApp implements Command, Application {
 
 		// Ask for -r permission, then create dir
 		if (!args.has("-r") && !args.has("--recursive")) {
-			throw new Error("files mkdir: creating nested directories needs -r");
+			this.errorDialog?.error({
+				title: "files mkdir:",
+				content: "creating nested directories needs -r"
+			});
+			return null;
 		}
 
 		for (let next of rem) {
@@ -478,15 +530,23 @@ class FilesApp implements Command, Application {
 	// Sets the current navPath to the target directory or opens up the file in the TextApp for file
 	public open(index: number): void {
 		if (!this.searchedDir) {
-			throw new Error(`files: open: invalid searchedDir`);
+			this.errorDialog?.error({
+				title: "files: open",
+				content: "Invalid searchedDir"
+			});
+			return;
 		}
 		
 		let item = this.searchedDir.getAll().at(index);
 		if (!item) {
-			throw new Error(`files: open: invalid index: ${index}`);
+			this.errorDialog?.error({
+				title: "files: open",
+				content: `Invalid index: ${index}. Reload the app to update contents.`
+			});
+			return;
 		}
 
-		if ("dirs" in item) { // Directory
+		if (item instanceof Directory) { // Directory
 			this.navPath = item.getPath();
 			this.go();
 		} else { // File
@@ -496,7 +556,19 @@ class FilesApp implements Command, Application {
 
 	// Shows the information of a file or directory using InfoDialog
 	public inspect(index: number): void {
-		console.log(index);
+		if (!this.infoDialog || !this.searchedDir) {
+			return;
+		}
+
+		let item = this.searchedDir.getAll()[index];
+		if (!item) {
+			return;
+		}
+
+		this.infoDialog.log({
+			title: item.name,
+			content: JSON.stringify(item.metadata.toJSON(), null, 2)
+		});
 	}
 
 	// Returns the correct directory (or parent directory of file) when user inputs a nested path (d = dir, f = file)
@@ -530,12 +602,12 @@ class FilesApp implements Command, Application {
 
 	// Finds all files and directories with the given path
 	public findAny(path: string): [Directory | null, File | null] {
-		let fileDir = this.find(this.parsePath(path), "f");
+		let fileDir = this.find(path, "f");
 		if (!fileDir) {
-			return [this.find(this.parsePath(path), "d"), null];
+			return [this.find(path, "d"), null];
 		}
 
-		return [this.find(this.parsePath(path), "d"), fileDir.getFile(this.extractName(path))];
+		return [this.find(path, "d"), fileDir.getFile(this.extractName(path))];
 	}
 
 	// Parses the provided path, replacing relative file paths with absolute ones
@@ -582,7 +654,7 @@ class FilesApp implements Command, Application {
 		let dir: Directory | null;
 		do {
 			dir = this.find(split, "d");
-			split = split.substring(0, Math.max(0, split.lastIndexOf("/")));
+			split = split.substring(0, Math.max(0, split.lastIndexOf("/") + 1));
 		} while (!dir && split.length > 0);
 
 		if (!dir || split.length === 0) {
@@ -631,7 +703,11 @@ class FilesApp implements Command, Application {
 		}
 
 		if (!this.searchedDir) {
-			return Promise.reject("files: handleNewFolder: searchedDir doesn't exist");
+			await this.errorDialog?.error({
+				title: "files: handleNewFolder",
+				content: "searchedDir does not exist"
+			});
+			return;
 		}
 
 		let name = await this.inputDialog.ask({
@@ -640,13 +716,17 @@ class FilesApp implements Command, Application {
 		});
 
 		if (!name) {
-			return Promise.reject("files: handleNewFolder: invalid name");
+			return;
 		}
 
 		// Attempt to create it, otherwise throw error
 		let result = this.searchedDir.createDir(name);
 		if (!result) {
-			return Promise.reject(`files: handleNewFolder: error when creating directory: ${name}`);
+			await this.errorDialog?.error({
+				title: "files: handleNewFolder",
+				content: `Duplicate directory: ${name}`
+			});
+			return;
 		}
 	}
 
@@ -656,7 +736,11 @@ class FilesApp implements Command, Application {
 		}
 
 		if (!this.searchedDir) {
-			return Promise.reject("files: handleNewFile: searchedDir doesn't exist");
+			await this.errorDialog?.error({
+				title: "files: handleNewFile",
+				content: "searchedDir does not exist"
+			});
+			return;
 		}
 
 		let name = await this.inputDialog.ask({
@@ -665,13 +749,17 @@ class FilesApp implements Command, Application {
 		});
 
 		if (!name) {
-			return Promise.reject("files: handleNewFile: invalid name");
+			return;
 		}
 
 		// Attempt to create it, otherwise throw error
 		let result = this.searchedDir.createFile(name);
 		if (!result) {
-			return Promise.reject(`files: handleNewFile: error when creating directory: ${name}`);
+			await this.errorDialog?.error({
+				title: "files: handleNewFile",
+				content: `Duplicate file: ${name}`
+			});
+			return;
 		}
 	}
 

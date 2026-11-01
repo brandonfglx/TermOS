@@ -54,7 +54,7 @@
 
 <dialog class="absolute inset-0 z-100 m-0 w-full h-full max-w-none max-h-none border-0 bg-transparent p-0 outline-none" bind:this={dialog} onclose={handleClose} onkeydown={handleKeydown}>
 	<div class="h-full w-full flex justify-center items-center backdrop-blur-[2px]">
-		<form class="bg-desktop-light-bg text-light-fg dark:bg-desktop-dark-bg dark:text-dark-fg p-6 rounded-lg font-mono text-base flex flex-col gap-4 justify-center" method="dialog">
+		<form class="text-light-fg dark:text-dark-fg bg-term-light-bg dark:bg-term-dark-bg min-w-1/4 p-6 rounded-lg font-mono text-base flex flex-col gap-2 justify-center" method="dialog">
 			<div class="w-full flex flex-row items-center">
 				<button class="w-8 cursor-pointer bg-transparent border-none p-0 flex items-center justify-center" type="button" value="close" formnovalidate aria-label="Close" onclick={() => dialog?.close("close")}>
 					<svg fill="currentColor" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
@@ -63,8 +63,8 @@
 				</button>
 			</div>
 			<div class="flex flex-col items-center gap-2 text-left">
-				<h1 class="w-full text-xl">{title}</h1>
-				<p class="w-full">{content}</p>
+				<h1 class="w-full text-2xl">{title}</h1>
+				<pre class="w-full">{content}</pre>
 			</div>
 		</form>
 	</div>

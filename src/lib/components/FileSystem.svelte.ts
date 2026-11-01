@@ -46,6 +46,10 @@ export class File {
 		return parentPath + "/" + this.name;
 	}
 
+	public moved(): void {
+		this.metadata.moved();
+	}
+
 	static isFile(obj: any): obj is File {
 		return obj instanceof File;
 	}
@@ -91,6 +95,22 @@ export class Directory {
 		return dir;
 	}
 
+	public add(obj: Directory | File): void {
+		if (obj instanceof Directory) {
+			this.dirs.push(obj);
+		} else {
+			this.files.push(obj);
+		}
+	}
+
+	public remove(obj: Directory | File): boolean {
+		if (obj instanceof Directory) {
+			return this.removeDir(obj.name);
+		} else  {
+			return this.removeFile(obj.name);
+		}
+	}
+
 	public removeFile(name: string): boolean {
 		// Use linear search since performance is not a concern for this project
 		for (let i = 0; i < this.files.length; i++) {
@@ -115,100 +135,48 @@ export class Directory {
 		return false;
 	}
 
-	public moveDir(name: string, target: Directory, force: boolean = false): boolean {
-		let dir = this.getDir(name);
-		if (!dir || (!force && target.hasDir(name))) {
-			return false;
-		}
-
-		// Ensure no duplicates can occur
-		if (force && target.hasDir(name)) {
-			target.removeDir(name);
-		}
-
-		// Prevent moving a (parent) directory into itself or a descendant
-		let nav: Directory | undefined = target;
-		while (nav) {
-			if (nav === dir) {
+	// TODO: add check to not create overlapping files/dirs
+	public move(target: Directory | File, dest: Directory, newName: string = target.name, force: boolean = false): boolean {
+		console.log(dest.has(target));
+		if (dest.has(target)) {
+			if (!force && target.name === newName) {
 				return false;
 			}
 
-			nav = nav.parent;
+			if (target instanceof Directory) {
+				dest.removeDir(target.name);
+			} else {
+				dest.removeFile(target.name);
+			}
 		}
 
-		this.dirs.splice(this.dirs.indexOf(dir), 1);
-		target.dirs.push(dir);
-		dir.parent = target;
-
-		// Update metadata including children
-		dir.metadata.moved();
-		dir.getAll().forEach((obj) => {
-			obj.metadata.moved();
-		});
-		
-		return true;
-	}
-
-	public moveFile(name: string, target: Directory, force: boolean = false): boolean {
-		let file = this.getFile(name);
-		if (!file || (!force && target.hasFile(name))) {
-			return false;
+		// Only exclude if dest is inside target
+		if (target instanceof Directory) {
+			if (dest.getPath().includes(target.getPath())) {
+				return false;
+			}
 		}
 
-		// Ensure no duplicates can occur
-		if (force && target.hasFile(name)) {
-			target.removeFile(name);
+		this.remove(target);
+		dest.add(target);
+		target.parent = dest;
+
+		// Rename if needed
+		if (newName !== target.name) {
+			target.name = newName;
 		}
 
-		this.files.splice(this.files.indexOf(file), 1);
-		target.files.push(file);
-		file.parent = target;
-
-		// Update metadata
-		file.metadata.moved();
+		target.moved();
 
 		return true;
 	}
 
-	public renameDir(name: string, newName: string, force: boolean = false): boolean {
-		let dir = this.getDir(name);
-		if (!dir || (!force && this.hasDir(newName))) {
-			return false;
+	public has(obj: Directory | File): boolean {
+		if (obj instanceof Directory) {
+			return this.hasDir(obj.name);
+		} else {
+			return this.hasFile(obj.name);
 		}
-
-		// Remove duplicates
-		if (force && this.hasDir(newName)) {
-			this.removeDir(newName);
-		}
-
-		dir.name = newName;
-
-		// Update metadata including children
-		dir.metadata.moved();
-		dir.getAll().forEach((obj) => {
-			obj.metadata.moved();
-		});
-		
-		return true;
-	}
-
-	public renameFile(name: string, newName: string, force: boolean = false): boolean {
-		let file = this.getFile(name);
-		if (!file || (!force && this.getFile(newName))) {
-			return false;
-		}
-
-		// Remove duplicates
-		if (force && this.getFile(newName)) {
-			this.removeFile(newName);
-		}
-
-		file.name = newName;
-
-		// Update metadata
-		file.metadata.moved();
-
-		return true;
 	}
 
 	public hasFile(name: string): boolean {
@@ -298,6 +266,18 @@ export class Directory {
 		if (this.parent) {
 			this.parent.update();
 		}
+	}
+
+	// Recursively updates self and children when Directory is moved (fixes path in metadata)
+	public moved(): void {
+		this.metadata.moved();
+		this.getAll().forEach((obj) => {
+			if (obj instanceof Directory) {
+				obj.moved();
+			} else {
+				obj.metadata.moved();
+			}
+		});
 	}
 
 	static isDirectory(obj: any): obj is Directory {

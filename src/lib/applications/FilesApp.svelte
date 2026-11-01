@@ -8,14 +8,19 @@
 <div class="relative h-full w-full">
 	<div class="h-full w-full overflow-y-auto flex flex-col">
 		<div class="bg-[#f0f0f0] dark:bg-[#101010] p-1.5 font-mono text-base flex flex-row gap-2">
-			<button class="w-8 cursor-pointer bg-transparent border-none p-0 flex items-center justify-center" aria-label="Back" onclick={() => {files.nav(-1)}}>
-				<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-					<path fill-rule="evenodd" clip-rule="evenodd" d="M11.707 4.293a1 1 0 0 1 0 1.414L6.414 11H20a1 1 0 1 1 0 2H6.414l5.293 5.293a1 1 0 0 1-1.414 1.414l-7-7a1 1 0 0 1 0-1.414l7-7a1 1 0 0 1 1.414 0z" fill="currentColor"/>
+			<button class="w-8 cursor-pointer bg-transparent border-none p-0 flex items-center justify-center" aria-label="Refresh" onclick={() => files.onAppShow()}>
+				<svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+					<path d="M23,12A11,11,0,1,1,12,1a10.9,10.9,0,0,1,5.882,1.7l1.411-1.411A1,1,0,0,1,21,2V6a1,1,0,0,1-1,1H16a1,1,0,0,1-.707-1.707L16.42,4.166A8.9,8.9,0,0,0,12,3a9,9,0,1,0,9,9,1,1,0,0,1,2,0Z"/>
 				</svg>
 			</button>
-			<button class="w-8 cursor-pointer bg-transparent border-none p-0 flex items-center justify-center" aria-label="Forward" onclick={() => {files.nav(1)}}>
-				<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" >
-					<path fill-rule="evenodd" clip-rule="evenodd" d="M12.293 4.293a1 1 0 0 1 1.414 0l7 7a1 1 0 0 1 0 1.414l-7 7a1 1 0 0 1-1.414-1.414L17.586 13H4a1 1 0 1 1 0-2h13.586l-5.293-5.293a1 1 0 0 1 0-1.414z" fill="currentColor"/>
+			<button class="w-8 cursor-pointer bg-transparent border-none p-0 flex items-center justify-center" aria-label="Back" onclick={() => files.nav(-1)}>
+				<svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+					<path fill-rule="evenodd" clip-rule="evenodd" d="M11.707 4.293a1 1 0 0 1 0 1.414L6.414 11H20a1 1 0 1 1 0 2H6.414l5.293 5.293a1 1 0 0 1-1.414 1.414l-7-7a1 1 0 0 1 0-1.414l7-7a1 1 0 0 1 1.414 0z"/>
+				</svg>
+			</button>
+			<button class="w-8 cursor-pointer bg-transparent border-none p-0 flex items-center justify-center" aria-label="Forward" onclick={() => files.nav(1)}>
+				<svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" >
+					<path fill-rule="evenodd" clip-rule="evenodd" d="M12.293 4.293a1 1 0 0 1 1.414 0l7 7a1 1 0 0 1 0 1.414l-7 7a1 1 0 0 1-1.414-1.414L17.586 13H4a1 1 0 1 1 0-2h13.586l-5.293-5.293a1 1 0 0 1 0-1.414z"/>
 				</svg>
 			</button>
 

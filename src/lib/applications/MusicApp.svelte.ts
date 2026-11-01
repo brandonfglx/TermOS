@@ -1,5 +1,8 @@
 import { desktop, type Application } from "$lib/components/listeners/Desktop.svelte";
 import type { Command } from "$lib/components/listeners/Terminal.svelte";
+import type ErrorDialog from "$lib/utils/ErrorDialog.svelte";
+import type InfoDialog from "$lib/utils/InfoDialog.svelte";
+import type InputDialog from "$lib/utils/InputDialog.svelte";
 
 class MusicApp implements Command, Application {
 	public name: string = "music";
@@ -12,11 +15,14 @@ class MusicApp implements Command, Application {
 	public currentVideo = $derived(this.playlist[this.playlistIndex] ?? null);
 	public playing: boolean = $state(false);
 	public ready = $state(false);
-	public error: string | null = $state(null);
 
 	public player: YT.Player | undefined;
 	private host: HTMLDivElement | undefined;
 	private apiPromise: Promise<void> | undefined;
+
+	public inputDialog = $state<ReturnType<typeof InputDialog> | null>(null);
+	public infoDialog = $state<ReturnType<typeof InfoDialog> | null>(null);
+	public errorDialog = $state<ReturnType<typeof ErrorDialog> | null>(null);
 
 	public help(args?: string[]): string[] {
 		return [
@@ -90,7 +96,11 @@ class MusicApp implements Command, Application {
 
 				this.input = "";
 			} else {
-				throw new Error(`Could not parse ID/URL: ${this.input}`);
+				this.errorDialog?.error({
+					title: "music:",
+					content: `Could not parse ID/URL: ${this.input}`
+				});
+				return;
 			}
 		}
 
@@ -193,6 +203,7 @@ class MusicApp implements Command, Application {
 			if (!document.querySelector("script[src=\"https://www.youtube.com/iframe_api\"]")) {
 				let script = document.createElement("script");
 				script.src = "https://www.youtube.com/iframe_api";
+				script.onerror = () => Promise.reject(new Error("YouTube IFrame API failed to load"));
 				script.async = true;
 				document.head.appendChild(script);
 			}
@@ -220,7 +231,6 @@ class MusicApp implements Command, Application {
 				this.playlist = ids.map((id) => this.parseInput(id))
 					.filter((v): v is Video => this.isVideo(v));
 				this.playlistIndex = 0;
-				this.error = null;
 
 				setTimeout(() => this.createPlayer(), 0);
 				break;
@@ -275,20 +285,35 @@ class MusicApp implements Command, Application {
 	public playerError(event: YT.OnErrorEvent) {
 		switch (event.data) {
 			case 2:
-				this.error = `Invalid YouTube video ID or URL (${this.currentVideo.id})`;
+				this.errorDialog?.error({
+					title: "Invalid YouTube video ID or URL",
+					content: `"${this.currentVideo.id}" is not a valid YouTube video ID or URL.`
+				});
 				break;
 			case 5:
-				this.error = `Video cannot be played in an HTML5 player`;
+				this.errorDialog?.error({
+					title: "HTML5 Error",
+					content: `"${this.currentVideo.id}" cannot be played in an HTML5 player.`
+				});
 				break;
 			case 100:
-				this.error = `Video not found, private, or removed`;
+				this.errorDialog?.error({
+					title: "Video Error",
+					content: `"${this.currentVideo.id}" cannot be found, or is private or removed.`
+				});
 				break;
 			case 101:
 			case 150:
-				this.error = `Video does not allow embedded playback`;
+				this.errorDialog?.error({
+					title: "Video Error",
+					content: `"${this.currentVideo.id}" does not allow embedded playback.`
+				});
 				break;
 			default:
-				this.error = `Unknown error occurred`;
+				this.errorDialog?.error({
+					title: "Unknown Error",
+					content: `An unknown error occurred when trying to play "${this.currentVideo.id}"`
+				});
 				break;
 		}
 	}
