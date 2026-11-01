@@ -1,3 +1,16 @@
+# Release v0.0.9
+What's new:
+ - Dialogs are now present to show the user when an application encounters an error instead of failing silently
+ - Fixed previous dialogs's CSS and made it non-modal
+ - Fixed errors in "mv" especially when renaming files
+ - Added reload button in Files app (in the minor case where contents aren't updated)
+ - Browser address bar should show the URL the user inputs (does not track the current webpage URL since iframe's privacy limitations)
+
+Known Issues:
+ - File manipulation commands may still have some issues (not detecting file collisions in certain cases)
+ - WeatherApp and Header remain unimplemented
+ - Light mode not tested (but should look ok)
+
 # Release v0.0.8
 Implemented the logic for the Music app:
  - Add YouTube videos to a playlist using video ID or URL
