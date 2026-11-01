@@ -1,5 +1,8 @@
 import { terminal, type Command } from "$lib/components/listeners/Terminal.svelte";
 import { desktop, type Application } from "$lib/components/listeners/Desktop.svelte";
+import type InputDialog from "$lib/utils/InputDialog.svelte";
+import type InfoDialog from "$lib/utils/InfoDialog.svelte";
+import type ErrorDialog from "$lib/utils/ErrorDialog.svelte";
 
 class BrowserApp implements Command, Application {
 	public name: string = "browser";
@@ -12,6 +15,10 @@ class BrowserApp implements Command, Application {
 	public frame: HTMLIFrameElement | undefined;
 	public renderHTML: string = $state("");
 	public src: string = $state("");
+
+	public inputDialog = $state<ReturnType<typeof InputDialog> | null>(null);
+	public infoDialog = $state<ReturnType<typeof InfoDialog> | null>(null);
+	public errorDialog = $state<ReturnType<typeof ErrorDialog> | null>(null);
 	
 	public help(args?: string[]): string[] {
 		return [

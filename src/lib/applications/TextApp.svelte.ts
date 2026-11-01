@@ -2,6 +2,9 @@ import { Directory, File } from "$lib/components/FileSystem.svelte";
 import { desktop, type Application } from "$lib/components/listeners/Desktop.svelte";
 import type { Command } from "$lib/components/listeners/Terminal.svelte";
 import { app as files } from "./FilesApp.svelte.ts";
+import type InputDialog from "$lib/utils/InputDialog.svelte";
+import type InfoDialog from "$lib/utils/InfoDialog.svelte";
+import type ErrorDialog from "$lib/utils/ErrorDialog.svelte";
 
 class TextApp implements Command, Application {
 	public name: string = "text";
@@ -17,6 +20,10 @@ class TextApp implements Command, Application {
 
 	public lineNumArea: HTMLDivElement | undefined;
 	public textArea: HTMLTextAreaElement | undefined;
+
+	public inputDialog = $state<ReturnType<typeof InputDialog> | null>(null);
+	public infoDialog = $state<ReturnType<typeof InfoDialog> | null>(null);
+	public errorDialog = $state<ReturnType<typeof ErrorDialog> | null>(null);
 
 	public help(args?: string[]): string[] {
 		return [

@@ -1,9 +1,9 @@
 <script lang="ts">
-    import { onDestroy, onMount } from "svelte";
+	import { onDestroy, onMount } from "svelte";
 	import { app as music } from "./MusicApp.svelte.ts";
-    import InputDialog from "$lib/utils/InputDialog.svelte";
-    import InfoDialog from "$lib/utils/InfoDialog.svelte";
-    import ErrorDialog from "$lib/utils/ErrorDialog.svelte";
+	import InputDialog from "$lib/utils/InputDialog.svelte";
+	import InfoDialog from "$lib/utils/InfoDialog.svelte";
+	import ErrorDialog from "$lib/utils/ErrorDialog.svelte";
 
 	let playerDiv: HTMLDivElement | undefined;
 

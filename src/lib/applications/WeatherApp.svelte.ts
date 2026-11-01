@@ -2,6 +2,9 @@ import type { Application } from "$lib/components/listeners/Desktop.svelte";
 import { terminal, type Command } from "$lib/components/listeners/Terminal.svelte";
 import { app as location, type LocationInfo } from "./Location";
 import { fetchWeatherApi } from "openmeteo";
+import type InputDialog from "$lib/utils/InputDialog.svelte";
+import type InfoDialog from "$lib/utils/InfoDialog.svelte";
+import type ErrorDialog from "$lib/utils/ErrorDialog.svelte";
 
 interface WeatherParams {
 	latitude: number,
@@ -21,6 +24,10 @@ class WeatherApp implements Command, Application {
 	public evalOnLoad: string[] = [];
 
 	private weatherApi: string = "https://api.open-meteo.com/v1/forecast";
+
+	public inputDialog = $state<ReturnType<typeof InputDialog> | null>(null);
+	public infoDialog = $state<ReturnType<typeof InfoDialog> | null>(null);
+	public errorDialog = $state<ReturnType<typeof ErrorDialog> | null>(null);
 
 	// Based off of chart on open-mateo sdk ts/units.ts file
 	private UNIT_TO_STRING: string[] = [
