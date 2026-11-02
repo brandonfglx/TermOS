@@ -3,7 +3,6 @@ import { kbManager, type KeyboardListener } from "../KeyboardManager.svelte";
 import { app } from "../../applications/TerminalApp.svelte.ts";
 import { app as files } from "../../applications/FilesApp.svelte.ts";
 
-// TODO: Consider implementing updated parser that can differntiate between spaces (ie. uses "\ " to denote a space, "\" to denote a continuation of a line, and ";" to denote multiple commands to be executed)
 class Terminal implements KeyboardListener {
 	public input: string = $state("");
 	public inputIndex: number = $state(0);
@@ -185,7 +184,6 @@ class Terminal implements KeyboardListener {
 		]));
 	}
 
-	// TODO: Change text formatting to output to a flex/grid box with text inside. Then allow the user to decide the number of inner flex columns, and allow them to place inside at a value; only for printf
 	public printf(str: string = "\0", style: TerminalStyle): void {
 		if (this.silent) {
 			return;
@@ -218,36 +216,101 @@ class Terminal implements KeyboardListener {
 		this.input = "";
 	}
 
+	// TODO: Consider implementing updated parser that can differntiate between spaces (ie. uses "\ " to denote a space, "\" to denote a continuation of a line (use "\\" to add a \), and ";" to denote multiple commands to be executed (use "\;" to escape ;))
 	public executeCommand(input: string): boolean {
-		let arr = input.trim().split(" ");
-		let cmdRaw = arr.at(0);
+		let arr = this.parseInput(input);
 
-		if (!cmdRaw || cmdRaw.length === 0) {
-			return false;
-		}
+		// Iterate for each command in input
+		for (const command of arr) {
+			let cmdRaw = command.at(0);
 
-		let cmd = this.commands.get(cmdRaw);
-
-		if (cmd) {
-			try {
-				cmd.execute(cmd.parseArgs(arr.slice(1)));
-			} catch (e: any) {
-				this.printerr(e);
+			if (!cmdRaw || cmdRaw.length === 0) {
 				return false;
 			}
-		} else {
-			// Try using aliases
-			let alias = this.aliases.get(cmdRaw);
 
-			if (alias) {
-				return this.executeCommand(`${alias} ${arr.slice(1).join(" ")}`);
+			let cmd = this.commands.get(cmdRaw);
+
+			if (cmd) {
+				try {
+					cmd.execute(cmd.parseArgs(command.slice(1)));
+				} catch (e: any) {
+					this.printerr(e);
+					return false;
+				}
+			} else {
+				// Try using aliases
+				let alias = this.aliases.get(cmdRaw);
+
+				if (alias) {
+					return this.executeCommand(`${alias} ${command.slice(1).join(" ")}`);
+				}
+
+				this.printerr(`terminal: command not found: ${cmdRaw}`);
+				return false;
 			}
-
-			this.printerr(`terminal: command not found: ${cmdRaw}`);
-			return false;
 		}
 
 		return true;
+	}
+
+	// Parses input so it can parse multiple commands and handle new lines and spaces
+	public parseInput(input: string): string[][] {
+		let arr: string[][] = [];
+
+		let escape = false;
+		let currCmd: string[] = [];
+		let currTerm = "";
+
+		for (let i = 0; i < input.length; i++) {
+			let c = input[i];
+			
+			if (escape) {
+				switch (c) {
+					case " ":
+						currTerm += " ";
+						break;
+					case "\\":
+						currTerm += "\\";
+						break;
+					case ";":
+						currTerm += ";";
+						break;
+				}
+
+				escape = false;
+			} else if (c === "\\") {
+				escape = true;
+			} else if (c === ";") {
+				// Push command and start fresh
+				if (currTerm.length > 0) {
+					currCmd.push(currTerm);
+					currTerm = "";
+				}
+
+				if (currCmd.length > 0) {
+					arr.push(currCmd);
+					currCmd = [];
+				}
+			} else if (c === " ") {
+				if (currTerm.length > 0) {
+					currCmd.push(currTerm);
+					currTerm = "";
+				}
+			} else {
+				currTerm += c;
+			}
+		}
+
+		// Flush values
+		if (currTerm) {
+			currCmd.push(currTerm);
+		}
+
+		if (currCmd) {
+			arr.push(currCmd);
+		}
+
+		return arr;
 	}
 }
 

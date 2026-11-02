@@ -3,6 +3,7 @@ import type { Command } from "$lib/components/listeners/Terminal.svelte";
 import type ErrorDialog from "$lib/utils/ErrorDialog.svelte";
 import type InfoDialog from "$lib/utils/InfoDialog.svelte";
 import type InputDialog from "$lib/utils/InputDialog.svelte";
+import { waitUntil } from "$lib/utils/utils";
 
 class MusicApp implements Command, Application {
 	public name: string = "music";
@@ -34,11 +35,15 @@ class MusicApp implements Command, Application {
 	public parseArgs(args: string[]): Map<string, string> {
 		let map = new Map<string, string>();
 
+		map.set("music", args.join(" "));
+
 		return map;
 	}
 	
 	public execute(args: Map<string, string>): void {
 		desktop.switchTo(this);
+
+		this.addThis(args.get("music") ?? "");
 	}
 
 	// Shuffles the playlist
@@ -55,7 +60,7 @@ class MusicApp implements Command, Application {
 
 	// Toggles from playing to pausing and vice versa
 	public togglePlaying(): void {
-		if (!this.player) {
+		if (!this.player || !this.currentVideo) {
 			return;
 		}
 
@@ -117,6 +122,74 @@ class MusicApp implements Command, Application {
 		}
 	}
 
+	// Adds the URLs or Playlists to the playlist, waits until DOM is loaded to properly load playlist
+	public async addThis(val: string, play: boolean = true): Promise<void> {
+		if (val.length === 0) {
+			return;
+		}
+
+		let allMusic = val.split(" ").filter((val) => val.length > 0);
+
+		let errors: string[] = [];
+		let cuedPlaylist = false;
+
+		for (const music of allMusic) {
+			let parsed = this.parseInput(music);
+			if (!parsed) {
+				errors.push(`Invalid URL or ID: ${music}`);
+				continue;
+			}
+
+			if (this.isVideo(parsed)) {
+				this.playlist.push(parsed);
+				continue;
+			}
+
+			if (typeof parsed !== "string") {
+				errors.push(`Could not parse ID/URL: ${music}`)
+				continue;
+			}
+
+			// Wait until the player is present
+			try {
+				await waitUntil(() => (this.ready ? this.player : undefined));
+			} catch {
+				errors.push(`Player did not become ready for: ${music}`);
+				continue;
+			}
+
+			let prev = this.player;
+			if (!prev) {
+				errors.push(`Player doesn't exist for ${music}`);
+				continue;
+			}
+
+			prev.cuePlaylist({
+				listType: "playlist",
+				list: parsed
+			});
+			cuedPlaylist = true;
+
+			// Wait for replacement player before cueing another video
+			try {
+				await waitUntil(() => (this.player !== prev && this.ready ? this.player : undefined));
+			} catch {
+				errors.push(`Timed out when loading video: ${music}`);
+			}
+		}
+
+		if (play && !cuedPlaylist && this.ready) {
+			this.play();
+		}
+
+		if (errors.length > 0) {
+			this.errorDialog?.error({
+				title: "Error(s) occurred in addThis()",
+				content: errors.join("\n")
+			});
+		}
+	}
+
 	// Extracts the video metadata (with ID) from a YT URL - a playlist is represented by a string (use cuePlaylist(), then getPlaylist() to load video array), videos are their own type (video details will be loaded once they are played - uses hidden getVideoData() method)
 	public parseInput(input: string): Video | string | null {
 		if (!input) {
@@ -157,7 +230,7 @@ class MusicApp implements Command, Application {
 
 	public attachHost(host: HTMLDivElement): void {
 		this.host = host;
-		void this.loadApi().then(() => {
+		this.loadApi().then(() => {
 			if (this.host === host) {
 				this.createPlayer();
 			}
