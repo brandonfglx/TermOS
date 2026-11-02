@@ -216,7 +216,6 @@ class Terminal implements KeyboardListener {
 		this.input = "";
 	}
 
-	// TODO: Consider implementing updated parser that can differntiate between spaces (ie. uses "\ " to denote a space, "\" to denote a continuation of a line (use "\\" to add a \), and ";" to denote multiple commands to be executed (use "\;" to escape ;))
 	public executeCommand(input: string): boolean {
 		let arr = this.parseInput(input);
 

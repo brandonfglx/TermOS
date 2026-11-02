@@ -339,7 +339,6 @@ class FilesApp implements Command, Application {
 		}
 	}
 
-	// TODO: Allow mv to rename files (move to same directory)
 	public mv(path: string, args: Map<string, string>): Directory | null {
 		let [target, dest] = path.split(/\s+/).filter(x => x.length > 0);
 		if (!target || !dest) {

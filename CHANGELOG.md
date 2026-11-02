@@ -1,3 +1,15 @@
+# Release v0.0.10
+What's new:
+ - Music app can now load music and playlists using a space-seperated input when launching using Terminal
+ - Browser app now has a default/home page that loads on start and can be returned to using the home icon - can be changed using `browser -d [URL]`
+ - Added dialogs to all remaining applications
+
+Known Issues:
+ - File manipulation commands may still have some issues (not detecting file collisions in certain cases)
+ - WeatherApp and Header remain unimplemented
+ - Light mode not tested (but should look ok)
+ - Text does not create intermediary directories
+
 # Release v0.0.9
 What's new:
  - Dialogs are now present to show the user when an application encounters an error instead of failing silently
