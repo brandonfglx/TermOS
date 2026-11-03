@@ -28,11 +28,12 @@ class TextApp implements Command, Application {
 	public help(args?: string[]): string[] {
 		return [
 			`${this.name}: ${this.desc}`,
-			`\tUsage: ${this.name} [path] [...flags] [...text]`,
+			`\tUsage: ${this.name} [path] [flags] [text]`,
 			"\tArgs:",
 			"\t\tpath: path of file to edit (does not need to exist)",
 			"\t\tflags: changes GUI and CLI behavior",
 			"\t\t\t-a: appends the text to the end of the file",
+			"\t\t\t-d | --dir: permits creation of intermediary directories",
 			"\t\ttext: writes text to the file at that path (does not open GUI)",
 		];
 	}
@@ -85,7 +86,6 @@ class TextApp implements Command, Application {
 		return map;
 	}
 	
-	// TODO: Fix creating intermediary directories on launch - text foo/bar/moo.txt
 	public execute(args: Map<string, string>): void {
 		// Validate or create file
 		let path = args.get("path");
@@ -96,23 +96,29 @@ class TextApp implements Command, Application {
 		// Convert path by parsing it
 		path = files.parsePath(path);
 
-		// Find from root
-		if (path.indexOf("/") === -1) {
-			this.dir = files.getCwd();
-		} else {
-			this.dir = files.findParent(path);
-			if (!this.dir) {
-				// Parent directory doesn't exist, throw error
-				throw new Error(`text: parent directory not found for: ${path}`);
+		// Get directory, otherwise make directory
+		let dir = files.find(path, "f");
+		if (!dir) {
+			if (!args.has("-d") && !args.has("--dir")) {
+				throw new Error(`text: cannot create intermediary directories for ${path}`);
 			}
+
+			let tempDir = files.mkdir(files.extractParent(path), new Map<string, string>([["-d", ""]]));
+			if (!tempDir) {
+				throw new Error(`text: mkdir returned invalid value when trying to create intermediary directories for ${path}`);
+			}
+
+			dir = tempDir;
 		}
+
+		this.dir = dir;
 
 		// Creates the file, doesn't override if it exists
 		this.dir.createFile(files.extractName(path));
 		this.file = this.dir.getFile(files.extractName(path))!;
 
 		// Load GUI
-		if (args.size === 1) {
+		if (!args.has("etc") || args.get("etc")?.length === 0) {
 			// Load information into content
 			this.content = this.file.getContent() ?? "";
 			desktop.switchTo(this);
@@ -201,7 +207,17 @@ class TextApp implements Command, Application {
 		switch (event.key) {
 			case "s":
 				if (event.ctrlKey) {
-					this.save();
+					if (this.save()) {
+						this.infoDialog?.log({
+							title: "File Saved",
+							content: `Successfully saved data to ${this.file?.getPath()}`
+						});
+					} else {
+						this.errorDialog?.error({
+							title: "Error On File Save",
+							content: `An error occurred when trying to save data to ${this.file?.getPath()}`
+						});
+					}
 				}
 				break;
 			case "q":

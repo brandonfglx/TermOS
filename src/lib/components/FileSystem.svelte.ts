@@ -135,11 +135,9 @@ export class Directory {
 		return false;
 	}
 
-	// TODO: add check to not create overlapping files/dirs
 	public move(target: Directory | File, dest: Directory, newName: string = target.name, force: boolean = false): boolean {
-		console.log(dest.has(target));
 		if (dest.has(target)) {
-			if (!force && target.name === newName) {
+			if (!force) {
 				return false;
 			}
 

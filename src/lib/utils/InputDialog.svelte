@@ -45,8 +45,6 @@
 			return;
 		}
 
-		let val = dialog.returnValue ?? "cancel";
-
 		if (dialog.returnValue === "submit") {
 			resolve(input);
 		} else {
@@ -79,7 +77,7 @@
 	<div class="h-full w-full flex justify-center items-center backdrop-blur-[2px]">
 		<form class="text-light-fg dark:text-dark-fg bg-term-light-bg dark:bg-term-dark-bg min-w-1/4 max-w-11/12 p-6 rounded-lg font-mono text-base flex flex-col gap-4 justify-center" method="dialog" onsubmit={handleSubmit}>
 			<div class="flex flex-row items-center gap-2">
-				<label for="input">{prompt}</label>
+				<label for="input" class="text-xl">{prompt}</label>
 				<input id="input" class="bg-[#f0f0f0] dark:bg-[#101010] border-none outline-none focus:outline-none focus:ring-0" type="text" bind:value={input} placeholder={placeholder} required />
 			</div>
 			<div class="flex flex-row justify-between items-center">

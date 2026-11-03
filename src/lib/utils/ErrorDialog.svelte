@@ -63,7 +63,7 @@
 				</button>
 			</div>
 			<div class="flex flex-col items-center gap-2 text-left">
-				<h1 class="w-full text-2xl">{title}</h1>
+				<h1 class="w-full text-xl">{title}</h1>
 				<pre class="w-full">{content}</pre>
 			</div>
 		</form>

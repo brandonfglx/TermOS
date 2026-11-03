@@ -30,7 +30,7 @@ class Help implements Command {
 	}
 
 	public execute(args: Map<string, string>): void {
-		if (args.size == 0) {
+		if (args.size === 0) {
 			terminal.println("Available commands:");
 			for (const [name, cmd] of terminal.commands.entries()) {
 				terminal.println(` - ${name}: ${cmd.desc}`);
@@ -40,30 +40,45 @@ class Help implements Command {
 			terminal.println("Use \"help [cmd]\" for help on specific commands.");
 
 			return;
-		} else {
-			let argsCmd = args.get("cmd");
-			if (!argsCmd) {
-				terminal.printerr("help: command not found.");
-				return;
-			}
+		}
 
-			let cmd = terminal.commands.get(argsCmd);
-			if (!cmd) {
+		let argsCmd = args.get("cmd");
+		if (!argsCmd) {
+			terminal.printerr("help: command not found.");
+			return;
+		}
+
+		let cmd = terminal.commands.get(argsCmd);
+		let cmdArgs: string[] = [];
+		if (!cmd) {
+			// Try searching in aliases
+			let alias = terminal.aliases.get(argsCmd)
+			if (!alias) {
 				terminal.printerr(`help: command not found: ${argsCmd}`);
 				return;
 			}
+			
+			let [extractedCmd, ...extractedArgs] = alias.split(" ");
 
-			let cmdArgs = args.get("args");
-			if (!cmdArgs) {
-				cmd.help().forEach((str) => {
-					terminal.println(str);
-				});
-			} else {
-				cmd.help(cmdArgs.split(" ")).forEach((str) => {
-					terminal.println(str);
-				});
+			cmd = terminal.commands.get(extractedCmd);
+			if (!cmd) {
+				terminal.printerr(`help: command not found when trying alias: ${alias} -> ${cmd}`);
+				return;
+			}
+
+			if (extractedArgs.length > 0) {
+				cmdArgs.push(...extractedArgs);
 			}
 		}
+
+		let remArgs = args.get("args");
+		if (remArgs) {
+			cmdArgs.push(...remArgs);
+		}
+
+		cmd.help(cmdArgs).forEach((str) => {
+			terminal.println(str);
+		});
 	}
 }
 

@@ -4,6 +4,7 @@ import { File, Directory, fileSystem } from "$lib/components/FileSystem.svelte";
 import InputDialog from "$lib/utils/InputDialog.svelte";
 import InfoDialog from "$lib/utils/InfoDialog.svelte";
 import ErrorDialog from "$lib/utils/ErrorDialog.svelte";
+import ConfirmDialog from "$lib/utils/ConfirmDialog.svelte";
 
 class FilesApp implements Command, Application {
 	public name: string = "files";
@@ -38,24 +39,90 @@ class FilesApp implements Command, Application {
 	public inputDialog = $state<ReturnType<typeof InputDialog> | null>(null);
 	public infoDialog = $state<ReturnType<typeof InfoDialog> | null>(null);
 	public errorDialog = $state<ReturnType<typeof ErrorDialog> | null>(null);
+	public confirmDialog = $state<ReturnType<typeof ConfirmDialog> | null>(null);
 
 	public help(args?: string[]): string[] {
+		if (!args) {
+			return this.defaultHelp();
+		}
+
+		switch (args[0]) {
+			case "ls":
+				return [
+					"ls: prints the contents of a directory",
+					`Usage: ${this.name} ls [dir]`,
+					"\tdir: directory to show (omit to show cwd)"
+				];
+			case "pwd":
+				return [
+					"pwd: prints the path of the current working directory",
+					`Usage: ${this.name} pwd`
+				];
+			case "touch":
+				return [
+					"touch: create a file",
+					`Usage: ${this.name} touch [-d | --dir] | [-f | --force] [path]`,
+					"\t-d | --dir: permit creating intermediary directories",
+					"\t-f | --force: permit overriding exisiting files at path",
+					"\tpath: the new path (including file name) for the new file"
+				];
+			case "rm":
+				return [
+					"rm: remove a directory or file",
+					`Usage: ${this.name} rm [-r | --recursive] [path]`,
+					"\t-r | --recursive: permit recursively deleting directories and files",
+					"\tpath: path of directory or file to remove"
+				];
+			case "mv":
+				return [
+					"mv: move a directory or file",
+					`Usage: ${this.name} mv [-r | --recursive] | [-d | --dir] [source path] [destination path]`,
+					"\t-r | --recursive: permit creating intermediary directories",
+					"\t-d | --dir: prioritize moving a directory than a file if both share the same source path",
+					"\tsource path: path of source (object to move)",
+					"\tdestination path: path of destination"
+				];
+			case "cat":
+				return [
+					"cat: prints a file's contents",
+					`Usage: ${this.name} cat [path]`,
+					"\tpath: file path to output contents of"
+				];
+			case "mkdir":
+				return [
+					"mkdir: create a directory",
+					`Usage: ${this.name} mkdir [-d | --dir] | [-f | --force] [path]`,
+					"\t-d | --dir: permit creating intermediary directories",
+					"\t-f | --force: permit overriding exisiting directory at path",
+					"\tpath: the new path (including directory name) for the new directory"
+				];
+			case "cd":
+				return [
+					"cd: change directory",
+					`Usage: ${this.name} cd [path]`,
+					"\tpath: path to change working directory to"
+				];
+			default:
+				throw new Error(`help files: invalid argument: ${args[0]}`);
+		}
+	}
+
+	public defaultHelp(): string[] {
 		return [
 			`${this.name}: ${this.desc}`,
-			`\tUsage: ${this.name} [action] [...args]`,
-			"\tArgs:",
-			"\t\taction: action to perform",
-			"\t\t\tNo argument:",
-			"\t\t\t\tpwd - prints the path of the current working directory",
-			"\t\t\tRequires path:",
-			"\t\t\t\ttouch: create a file",
-			"\t\t\t\trm: remove a file",
-			"\t\t\t\tmv: move a file or directory (use -d to favor directory over files if there is overlap)",
-			"\t\t\t\tcat: prints a file's contents",
-			"\t\t\t\tmkdir: create a directory",
-			"\t\t\t\tcd: change directory",
-			"\t\t\tIf no action is provided, lists all files and directories in the current working directory.",
-			`\t\targs: arguments for the action (list of available args can be found with \"help ${this.name} [action]\")`
+			`Usage: ${this.name} [action] [...args]`,
+			"\taction: action to perform",
+			"\t\tNo argument:",
+			"\t\t\tpwd - prints the path of the current working directory",
+			"\t\tRequires path:",
+			"\t\t\ttouch: create a file",
+			"\t\t\trm: remove a file",
+			"\t\t\tmv: move a file or directory (use -d to favor directory over files if there is overlap)",
+			"\t\t\tcat: prints a file's contents",
+			"\t\t\tmkdir: create a directory",
+			"\t\t\tcd: change directory",
+			"\t\tIf no action is provided, lists all files and directories in the current working directory.",
+			`\targs: arguments for the action (list of available args can be found with \"help ${this.name} [action]\")`
 		];
 	}
 
@@ -114,6 +181,8 @@ class FilesApp implements Command, Application {
 			return;
 		}
 
+		// IMPORTANT: The rest of execute() is CLI only, so do not use dialogs!
+
 		let action = args.get("action") ?? "";
 
 		// No path/"etc" value needed
@@ -132,11 +201,7 @@ class FilesApp implements Command, Application {
 
 		let etc = args.get("etc");
 		if (!etc) {
-			this.errorDialog?.error({
-				title: "files",
-				content: "missing path"
-			})
-			return;
+			throw new Error("files: missing path");
 		}
 
 		// Calls appropriate action
@@ -144,31 +209,19 @@ class FilesApp implements Command, Application {
 			case "touch":
 				let succeededTouch = this.touch(etc, remArgs);
 				if (!succeededTouch) {
-					this.errorDialog?.error({
-						title: "files touch:",
-						content: `failed to create file: ${etc}`
-					});
-					return;
+					throw new Error(`files touch: failed to create file: ${etc}`);
 				}
 				break;
 			case "rm":
 				let succeededRm = this.rm(etc, remArgs);
 				if (!succeededRm) {
-					this.errorDialog?.error({
-						title: "files rm:",
-						content: `failed to remove: ${etc}`
-					});
-					return;
+					throw new Error(`files rm: failed to remove: ${etc}`);
 				}
 				break;
 			case "mv":
 				let succeededMv = this.mv(etc, remArgs);
 				if (!succeededMv) {
-					this.errorDialog?.error({
-						title: "files mv:",
-						content: `failed to move: ${etc}`
-					});
-					return;
+					throw new Error(`files mv: failed to move: ${etc}`);
 				}
 				break;
 			case "cat":
@@ -177,21 +230,13 @@ class FilesApp implements Command, Application {
 			case "mkdir":
 				let succeededMkdir = this.mkdir(etc, remArgs);
 				if (!succeededMkdir) {
-					this.errorDialog?.error({
-						title: "files mkdir:",
-						content: `failed to create directory: ${etc}`
-					});
-					return;
+					throw new Error(`files mkdir: failed to create directory: ${etc}`);
 				}
 				break;
 			case "cd":
 				let succeededCd = this.cd(etc, remArgs);
 				if (!succeededCd) {
-					this.errorDialog?.error({
-						title: "files cd:",
-						content: `failed to change directory: ${etc}`
-					});
-					return;
+					throw new Error(`files cd: failed to change directory: ${etc}`);
 				}
 				break;
 			case "save":
@@ -201,11 +246,7 @@ class FilesApp implements Command, Application {
 				this.load();
 				break;
 			default:
-				this.errorDialog?.error({
-					title: "files:",
-					content: `invalid action: ${args.get("action")}`
-				});
-				break;
+				throw new Error(`files: invalid action: ${args.get("action")}`);
 		}
 	}
 
@@ -274,30 +315,44 @@ class FilesApp implements Command, Application {
 		terminal.printf(rest, {});
 	}
 
-	// TODO: Allow touch to create intermediary directories
 	public touch(path: string, args: Map<string, string>): File | null {
-		let dir = this.cwd;
-
-		if (path.indexOf("/") !== -1) {
-			let tempDir = this.findParent(path);
-			if (tempDir == null) {
-				return null;
-			}
-			dir = tempDir;
-		}
-		
-		let name = this.extractName(path);
-		let attempt = dir.createFile(name);
-
-		if (attempt == null && args.has("--force")) {
-			if (dir.removeFile(name)) {
-				return dir.createFile(name);
-			}
-
+		// Find the closest parent directory
+		let arr = this.findValidParent(path);
+		if (!arr) {
 			return null;
 		}
 
-		return attempt;
+		let parent = arr[0];
+		let rem = arr[1].substring(0, arr[1].length - this.extractName(path).length).split("/").filter(x => x.length > 0);
+
+		if (rem.length > 0) {
+			if (!args.has("-d") && !args.has("--dir")) {
+				return null;
+			}
+
+			// Create intermediary directories
+			for (const remDir of rem) {
+				let temp = parent.createDir(remDir);
+				if (!temp) {
+					return null;
+				}
+
+				parent = temp;
+			}
+		}
+		
+		let name = this.extractName(path);
+		if (parent.hasFile(name)) {
+			if (!args.has("-f") && !args.has("--force")) {
+				return null;
+			}
+
+			if (!parent.removeFile(name)) {
+				return null;
+			}
+		}
+
+		return parent.createFile(name);
 	}
 
 	// Removes the file (or directory when "-r" | "--recursive" is appended), searches both files and dirs, returns whether the rm succeded
@@ -380,7 +435,7 @@ class FilesApp implements Command, Application {
 		}
 
 		// Prioritize file mv over dir mv (except for when it has "-d")
-		if (args.has("-d") || !targetFile) {
+		if (args.has("-d") || args.has("--dir") || !targetFile) {
 			if (!targetDir?.parent) {
 				return null;
 			}
@@ -409,42 +464,43 @@ class FilesApp implements Command, Application {
 	}
 
 	public mkdir(path: string, args: Map<string, string>): Directory | null {
-		let parsed = this.parsePath(path);
-		let valid = this.findValidParent(parsed);
-		if (!valid) {
+		// Find the closest parent directory
+		let arr = this.findValidParent(path);
+		if (!arr) {
 			return null;
 		}
 
-		// Create all remaining directories
-		let dir = valid[0];
-		let rem = valid[1].split("/").filter(x => x.length > 0);
+		let parent = arr[0];
+		let rem = arr[1].substring(0, arr[1].length - this.extractName(path).length).split("/").filter(x => x.length > 0);
 
-		if (rem.length === 0) {
-			return null; // None created
+		if (rem.length > 0) {
+			if (!args.has("-d") && !args.has("--dir")) {
+				return null;
+			}
+
+			// Create intermediary directories
+			for (const remDir of rem) {
+				let temp = parent.createDir(remDir);
+				if (!temp) {
+					return null;
+				}
+
+				parent = temp;
+			}
 		}
+		
+		let name = this.extractName(path);
+		if (parent.hasDir(name)) {
+			if (!args.has("-f") && !args.has("--force")) {
+				return null;
+			}
 
-		// Create directory if there is the only one & don't ask for -r
-		if (rem.length === 1) {
-			return dir.createDir(rem[0]);
-		}
-
-		// Ask for -r permission, then create dir
-		if (!args.has("-r") && !args.has("--recursive")) {
-			this.errorDialog?.error({
-				title: "files mkdir:",
-				content: "creating nested directories needs -r"
-			});
-			return null;
-		}
-
-		for (let next of rem) {
-			let nextDir = dir.createDir(next);
-			if (nextDir) {
-				dir = nextDir;
+			if (!parent.removeDir(name)) {
+				return null;
 			}
 		}
 
-		return dir;
+		return parent.createDir(name);
 	}
 
 	public cd(path: string, args: Map<string, string>): Directory | null {
@@ -570,6 +626,30 @@ class FilesApp implements Command, Application {
 		});
 	}
 
+	public async promptDelete(index: number): Promise<void> {
+		if (!this.confirmDialog || !this.searchedDir) {
+			return;
+		}
+
+		let item = this.searchedDir.getAll()[index];
+		if (!item) {
+			return;
+		}
+
+		let result = await this.confirmDialog.confirm({
+			prompt: `Delete ${item.name}?`
+		});
+
+		if (result) {
+			if (!this.searchedDir.remove(item)) {
+				this.errorDialog?.error({
+					title: "Error on Remove",
+					content: `An error occurred when trying to remove ${item.getPath()}`
+				});
+			}
+		}
+	}
+
 	// Returns the correct directory (or parent directory of file) when user inputs a nested path (d = dir, f = file)
 	public find(path: string, type: "d" | "f"): Directory | null {
 		let dir = fileSystem.root;
@@ -646,21 +726,30 @@ class FilesApp implements Command, Application {
 	}
 
 	// Finds the parent of the specified dir or file as low in the directory tree as possible to the closest parent by walking upwards and retrying using find
-	private findValidParent(path: string): [Directory, string] | null {
+	public findValidParent(path: string): [Directory, string] | null {
 		path = this.parsePath(path);
 
 		let split = path;
 		let dir: Directory | null;
 		do {
 			dir = this.find(split, "d");
-			split = split.substring(0, Math.max(0, split.lastIndexOf("/") + 1));
+			split = split.substring(0, Math.max(0, split.lastIndexOf("/")));
 		} while (!dir && split.length > 0);
 
-		if (!dir || split.length === 0) {
+		if (split.length === 0) {
+			return [fileSystem.root, path.substring(fileSystem.root.name.length)];
+		}
+
+		if (!dir) {
 			return null;
 		}
 
 		return [dir, path.substring(split.length)];
+	}
+
+	public extractParent(path: string): string {
+		let parsed = this.parsePath(path);
+		return parsed.substring(0, parsed.length - this.extractName(parsed).length);
 	}
 
 	// Extracts the name of the dir/file with this path.
@@ -762,6 +851,16 @@ class FilesApp implements Command, Application {
 		}
 	}
 
+	public handleContextMenu(event: MouseEvent, index: number) {
+		event.preventDefault();
+
+		if (event.ctrlKey) {
+			this.promptDelete(index);
+		} else {
+			this.inspect(index);
+		}
+	}
+
 	public onAppShow(): void {
 		// Set current reference directory to cwd
 		this.searchedDir = this.cwd;
@@ -774,7 +873,6 @@ class FilesApp implements Command, Application {
 		
 	}
 
-	// TODO: Add shortcut ctrl+n to create a new file and ctrl+shift+n to create directory (add respective buttons to left side of address bar)
 	public keydown(event: KeyboardEvent): void {
 		switch (event.key) {
 			case "q":
