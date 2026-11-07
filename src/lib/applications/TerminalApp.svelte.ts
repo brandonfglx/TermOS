@@ -15,7 +15,7 @@ class TerminalApp implements Command, Application {
 	public errorDialog = $state<ReturnType<typeof ErrorDialog> | null>(null);
 
 	public getVersion(): string {
-		return "v0.0.9";
+		return "v0.0.11";
 	}
 
 	public help(args?: string[]): string[] {

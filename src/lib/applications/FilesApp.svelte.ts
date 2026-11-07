@@ -102,6 +102,8 @@ class FilesApp implements Command, Application {
 					`Usage: ${this.name} cd [path]`,
 					"\tpath: path to change working directory to"
 				];
+			case undefined:
+				return this.defaultHelp();
 			default:
 				throw new Error(`help files: invalid argument: ${args[0]}`);
 		}

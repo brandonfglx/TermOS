@@ -1,3 +1,15 @@
+# Release v0.0.11
+What's new:
+ - New dialog: ConfirmDialog - prompts user to confirm or deny an action (returns a `Promise<boolean>`)
+ - Added suppport for intermediary directory creation in `touch`, `mkdir`, and `text` commands
+ - Fixed `help files [action]` to show arguments for each option
+ - Files app can now delete files by using Ctrl+RMB
+ - Aliases can now be used when using `help` - call `help [alias]` will call `help [expanded alias]`
+ - **Weather App now has a GUI**: check your weather and search the weather using a zip code
+
+Known issues:
+ - Header unimplemented
+
 # Release v0.0.10
 What's new:
  - Music app can now load music and playlists using a space-seperated input when launching using Terminal
@@ -36,7 +48,7 @@ Some known issues:
  - Titles do not generate for videos (this is caused by a limitation with the YT embed API - accessing titles would require an API key & cost credits)
  - Random errors inside console (depends on browser, but Firfox + uBlock Origin may throw CORS errors that don't impact playback)
 
-# Release v0.0.1 - v0.0.7a (Prep Week 2 - Week 1)
+# Release v0.0.1 - v0.0.7a
 Implemented the following:
  - alias: toggles aliases to commands; aliases are used if a command doesn't exist
  - browser: barebones browser
