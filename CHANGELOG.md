@@ -1,3 +1,12 @@
+# Release v0.0.12
+ - `loc` now permits fetching using any name using OpenStreetMap's Nominatim API - shows all available locations that match description
+ - The `Weather` app now allows the user to input any location by its name. Zip codes are still proccessed through [zippopotam.us], but you are prompted to select a specific location if a name matches multiple locations
+ - Information inside Dialogs now do not overflow, rather they will scroll in the x and y direction if needed
+ - `Header` finally implemented - control the basics of the terminal (shows information about the current session - including save/load) and application specific functions
+
+Known Issues:
+ - N/A
+
 # Release v0.0.11
 What's new:
  - New dialog: ConfirmDialog - prompts user to confirm or deny an action (returns a `Promise<boolean>`)
@@ -11,7 +20,7 @@ What's new:
  - Weather App shows important information about the current weather and forecasted weather
  - Number of days shown in weather app is set at app launch using `weather -d [days]`
 
-Known issues:
+Known Issues:
  - Header unimplemented
 
 # Release v0.0.10

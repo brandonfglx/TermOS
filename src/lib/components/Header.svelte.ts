@@ -1,13 +1,14 @@
 export class HeaderItem {
 	public name: string;
-	public callback: () => void;
+	public onclick: () => void;
 
-	constructor(name: string, callback: () => void) {
+	constructor(name: string, onclick: () => void) {
 		this.name = name;
-		this.callback = callback;
+		this.onclick = onclick;
 	}
 }
 
+// On click, shows the dropdown of the header items
 export class HeaderMenu {
 	public name: string;
 	public items: HeaderItem[];
@@ -18,6 +19,7 @@ export class HeaderMenu {
 	}
 }
 
+// TODO: Each application has its own header instance that manages itself; TermOS has a completely seperate header bar area to store general controls
 class Header {
 	public controls: HeaderMenu[];
 	public sysCtrls: HeaderMenu[];

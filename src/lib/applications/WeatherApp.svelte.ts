@@ -202,55 +202,63 @@ class WeatherApp implements Command, Application {
 		let weatherResp; // WeatherApiResponse[]
 
 		try {
-			let loc = await location.fetchLoc(args.get("zipCode"));
+			let locs = await location.fetchLocs(args.get("zipCode"));
 
-			weatherResp = await fetchWeatherApi(this.weatherApi, this.getWeatherParams(loc, Number(args.get("days")!)));
+			for (let i = 0; i < locs.length; i++) {
+				let loc = locs[i];
 
-			// Only process the first weather (maybe process others - controlled by flag?)
-			let weather = weatherResp[0];
-			let current = weather.current()!;
-			let daily = weather.daily()!;
+				weatherResp = await fetchWeatherApi(this.weatherApi, this.getWeatherParams(loc, Number(args.get("days")!)));
 
-			let info: string[] = [
-				`Weather Forecast For ${loc.cityName}, ${loc.regionCode}, ${loc.countryCode}:`
-			];
+				// Only process the first weather (maybe process others - controlled by flag?)
+				let weather = weatherResp[0];
+				let current = weather.current()!;
+				let daily = weather.daily()!;
 
-			if (current) {
-				info.push(
-					`\tCurrent Weather (${new Date(Number(current.time()) * 1000).toLocaleString()}):`,
-					`\t\tTemperature: ${current.variables(0)!.value().toFixed(0)}${this.UNIT_TO_STRING[current.variables(0)!.unit()]}`,
-					`\t\tApparent Temperature: ${current.variables(1)!.value().toFixed(0)}${this.UNIT_TO_STRING[current.variables(1)!.unit()]}`,
-					`\t\tWind Speed: ${current.variables(2)!.value().toFixed(0)} ${this.UNIT_TO_STRING[current.variables(2)!.unit()]}`,
-					`\t\tWind Speed: ${current.variables(3)!.value().toFixed(0)} ${this.UNIT_TO_STRING[current.variables(3)!.unit()]}`,
-					`\t\tWind Direction: ${current.variables(4)!.value().toFixed(0)}${this.UNIT_TO_STRING[current.variables(4)!.unit()]}`,
-					`\t\tHumidity: ${current.variables(5)!.value().toFixed(0)}${this.UNIT_TO_STRING[current.variables(5)!.unit()]}`,
-					`\t\tPrecipitation: ${current.variables(6)!.value().toFixed(0)} ${this.UNIT_TO_STRING[current.variables(6)!.unit()]}`,
-					`\t\tCondition: ${this.getCondition(current.variables(7)!.value())}`
-				);
-			}
-			
-			if (daily) {
-				for (let i = 0; i < daily.variables(0)!.valuesArray()!.length; i++) {
+				let info: string[] = [
+					`Weather Forecast For ${loc.name}:`
+				];
+
+				if (current) {
 					info.push(
-						`\tWeather for ${new Date(Number(daily.time()) + i * daily.interval() * 1000).toLocaleString()}:`,
-						`\t\tMax Temperature: ${daily.variables(0)!.valuesArray()![i].toFixed(0)}${this.UNIT_TO_STRING[daily.variables(0)!.unit()]}`,
-						`\t\tMin Temperature: ${daily.variables(1)!.valuesArray()![i].toFixed(0)}${this.UNIT_TO_STRING[daily.variables(1)!.unit()]}`,
-						`\t\tPrecipitation Chance: ${daily.variables(2)!.valuesArray()![i].toFixed(0)}${this.UNIT_TO_STRING[daily.variables(2)!.unit()]}`,
-						`\t\tVisibility: ${daily.variables(3)!.valuesArray()![i].toFixed(0)} ${this.UNIT_TO_STRING[daily.variables(3)!.unit()]}`,
-						`\t\tWind Speed: ${daily.variables(4)!.valuesArray()![i].toFixed(0)} ${this.UNIT_TO_STRING[daily.variables(4)!.unit()]}`,
-						`\t\tWind Gusts: ${daily.variables(5)!.valuesArray()![i].toFixed(0)} ${this.UNIT_TO_STRING[daily.variables(5)!.unit()]}`,
-						`\t\tSunrise: ${new Date(Number(daily.variables(6)!.valuesInt64(i)) * 1000).toLocaleTimeString()}`,
-						`\t\tSunrise: ${new Date(Number(daily.variables(7)!.valuesInt64(i)) * 1000).toLocaleTimeString()}`,
-						`\t\tUV Index Max: ${daily.variables(8)!.valuesArray()![i].toFixed(0)}${this.UNIT_TO_STRING[daily.variables(8)!.unit()]}`,
-						`\t\tPrecipitation Sum: ${daily.variables(9)!.valuesArray()![i].toFixed(0)}${this.UNIT_TO_STRING[daily.variables(9)!.unit()]}`,
-						`\t\tCondition: ${this.getCondition(daily.variables(10)!.valuesArray()![i])}`
-					)
+						`\tCurrent Weather (${new Date(Number(current.time()) * 1000).toLocaleString()}):`,
+						`\t\tTemperature: ${current.variables(0)!.value().toFixed(0)}${this.UNIT_TO_STRING[current.variables(0)!.unit()]}`,
+						`\t\tApparent Temperature: ${current.variables(1)!.value().toFixed(0)}${this.UNIT_TO_STRING[current.variables(1)!.unit()]}`,
+						`\t\tWind Speed: ${current.variables(2)!.value().toFixed(0)} ${this.UNIT_TO_STRING[current.variables(2)!.unit()]}`,
+						`\t\tWind Speed: ${current.variables(3)!.value().toFixed(0)} ${this.UNIT_TO_STRING[current.variables(3)!.unit()]}`,
+						`\t\tWind Direction: ${current.variables(4)!.value().toFixed(0)}${this.UNIT_TO_STRING[current.variables(4)!.unit()]}`,
+						`\t\tHumidity: ${current.variables(5)!.value().toFixed(0)}${this.UNIT_TO_STRING[current.variables(5)!.unit()]}`,
+						`\t\tPrecipitation: ${current.variables(6)!.value().toFixed(0)} ${this.UNIT_TO_STRING[current.variables(6)!.unit()]}`,
+						`\t\tCondition: ${this.getCondition(current.variables(7)!.value())}`
+					);
+				}
+				
+				if (daily) {
+					for (let i = 0; i < daily.variables(0)!.valuesArray()!.length; i++) {
+						info.push(
+							`\tWeather for ${new Date(Number(daily.time()) + i * daily.interval() * 1000).toLocaleString()}:`,
+							`\t\tMax Temperature: ${daily.variables(0)!.valuesArray()![i].toFixed(0)}${this.UNIT_TO_STRING[daily.variables(0)!.unit()]}`,
+							`\t\tMin Temperature: ${daily.variables(1)!.valuesArray()![i].toFixed(0)}${this.UNIT_TO_STRING[daily.variables(1)!.unit()]}`,
+							`\t\tPrecipitation Chance: ${daily.variables(2)!.valuesArray()![i].toFixed(0)}${this.UNIT_TO_STRING[daily.variables(2)!.unit()]}`,
+							`\t\tVisibility: ${daily.variables(3)!.valuesArray()![i].toFixed(0)} ${this.UNIT_TO_STRING[daily.variables(3)!.unit()]}`,
+							`\t\tWind Speed: ${daily.variables(4)!.valuesArray()![i].toFixed(0)} ${this.UNIT_TO_STRING[daily.variables(4)!.unit()]}`,
+							`\t\tWind Gusts: ${daily.variables(5)!.valuesArray()![i].toFixed(0)} ${this.UNIT_TO_STRING[daily.variables(5)!.unit()]}`,
+							`\t\tSunrise: ${new Date(Number(daily.variables(6)!.valuesInt64(i)) * 1000).toLocaleTimeString()}`,
+							`\t\tSunrise: ${new Date(Number(daily.variables(7)!.valuesInt64(i)) * 1000).toLocaleTimeString()}`,
+							`\t\tUV Index Max: ${daily.variables(8)!.valuesArray()![i].toFixed(0)}${this.UNIT_TO_STRING[daily.variables(8)!.unit()]}`,
+							`\t\tPrecipitation Sum: ${daily.variables(9)!.valuesArray()![i].toFixed(0)}${this.UNIT_TO_STRING[daily.variables(9)!.unit()]}`,
+							`\t\tCondition: ${this.getCondition(daily.variables(10)!.valuesArray()![i])}`
+						)
+					}
+				}
+
+				info.forEach((str) => {
+					terminal.println(str);
+				});
+
+				if (i !== locs.length - 1) {
+					terminal.println();
 				}
 			}
-
-			info.forEach((str) => {
-				terminal.println(str);
-			});
 		} catch (e: any) {
 			terminal.printerr(e);
 		}
@@ -293,7 +301,32 @@ class WeatherApp implements Command, Application {
 	// Adds whatever value is in input as a LocationInfo object to the array (if it's valid) and highlights it; no need to handle same location, since it will update the weather and location and change to it, which is expected behavior
 	public async add(): Promise<void> {
 		try {
-			let loc = await location.fetchLoc(this.input);
+			let locs = await location.fetchLocs(this.input);
+
+			if (locs.length === 0) {
+				throw new Error(`weather: location not found for "${this.input}"`);
+			}
+
+			let loc = locs[0];
+			if (locs.length > 1) {
+				// Make the user choose which location to use
+				let index = Number(await this.inputDialog?.ask({
+					prompt: "Choose a Location (Enter location #)",
+					description: locs.map((x, index) => `${index + 1}: ${x.address}`).join("\n")
+				}));;
+
+				// Exit on invalid input
+				if (!index || index < 1 || index > locs.length) {
+					await this.errorDialog?.error({
+						title: "Invalid Location",
+						content: `${index} is not within the valid range of [1, ${locs.length}]`
+					});
+					return;
+				}
+
+				loc = locs[--index];
+			}
+
 			let weather = await fetchWeatherApi(this.weatherApi, this.getWeatherParams(loc, Number(this.args?.get("days"))));
 			this.info.set(this.toKey(loc), [loc, weather[0]]);
 			this.loc = loc;
@@ -345,7 +378,7 @@ class WeatherApp implements Command, Application {
 		if (!this.loc) {
 			let attemptLoc = this.info.entries().next().value?.[1][0];
 			if (!attemptLoc) {
-				this.loc = await location.fetchLoc();
+				this.loc = (await location.fetchLocs())[0];
 				addBack = true;
 			} else {
 				this.loc = attemptLoc;

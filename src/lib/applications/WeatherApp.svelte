@@ -37,10 +37,10 @@
 			<div class="flex-1 min-h-0 min-w-0 flex flex-col gap-2 overflow-y-auto overflow-x-hidden">
 				{#each weather.info.values() as item}
 					<div class="flex flex-row gap-2 p-2 bg-term-light-bg dark:bg-term-dark-bg justify-center items-center min-w-0">
-						<button class="flex-1 min-w-0 cursor-pointer bg-transparent border-none p-0 flex items-center text-left" aria-label={`${item[0].cityName}, ${item[0].regionCode}, ${item[0].countryCode}`} onclick={() => weather.goTo(item[0])}>
+						<button class="flex-1 min-w-0 cursor-pointer bg-transparent border-none p-0 flex items-center text-left" aria-label={item[0].address} onclick={() => weather.goTo(item[0])}>
 							<div class="title-clip w-full min-w-0 overflow-hidden">
 								<h1 class="title-marquee w-max whitespace-nowrap" title={`${item[0].latitude}, ${item[0].longitude}`}>
-									{`${item[0].cityName}, ${item[0].regionCode}, ${item[0].countryCode}`}
+									{item[0].name}
 								</h1>
 							</div>
 						</button>
@@ -70,7 +70,7 @@
 				</div>
 			{:else}
 				<div class="w-full p-8 flex flex-col justify-center items-center">
-					<p class="">{`${weather.loc.cityName}, ${weather.loc.regionCode}, ${weather.loc.countryCode}`}</p>
+					<p class="" title={weather.loc.address}>{weather.loc.name}</p>
 					<p class="text-6xl p-1">{`${weather.getWeatherVar(0)!.value().toFixed(0)}${weather.UNIT_TO_STRING[weather.getWeatherVar(0)!.unit()]}`}</p>
 					<p class="text-xl">{`${weather.getCondition(weather.getWeatherVar(7)!.value())}`}</p>
 				</div>
