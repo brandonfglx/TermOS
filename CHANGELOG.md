@@ -5,7 +5,11 @@ What's new:
  - Fixed `help files [action]` to show arguments for each option
  - Files app can now delete files by using Ctrl+RMB
  - Aliases can now be used when using `help` - call `help [alias]` will call `help [expanded alias]`
+ - `loc` command now shows the formatted date + time of fetch
  - **Weather App now has a GUI**: check your weather and search the weather using a zip code
+ - Zip codes can be added to the weather sidebar (currently only saved if page is not reloaded)
+ - Weather App shows important information about the current weather and forecasted weather
+ - Number of days shown in weather app is set at app launch using `weather -d [days]`
 
 Known issues:
  - Header unimplemented

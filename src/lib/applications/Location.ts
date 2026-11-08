@@ -1,5 +1,6 @@
 import { terminal, type Command } from "$lib/components/listeners/Terminal.svelte";
 
+// utcFetched returns UTC formatted string, while unixFetched returnst the unix time on the local machine
 export interface LocationInfo {
 	cityName: string,
 	regionCode: string,
@@ -10,7 +11,9 @@ export interface LocationInfo {
 	latitude: number,
 	longitude: number,
 	ipAddress: string | undefined,
-	asnOrganization: string | undefined
+	asnOrganization: string | undefined,
+	utcFetched: string,
+	unixFetched: number
 }
 
 class Location implements Command {
@@ -30,17 +33,17 @@ class Location implements Command {
 		];
 	}
 
-	public async fetchLoc(zipCode?: string): Promise<LocationInfo> {
+	public async fetchLoc(input?: string): Promise<LocationInfo> {
 		let loc: LocationInfo;
 
-		if (zipCode) {
-			let response = await fetch(this.zipApi + `/${zipCode}`);
-
+		if (input && /[0-9]{5}/.test(input)) {
+			let response = await fetch(`${this.zipApi}/${input}`);
 			if (!response || !response.ok) {
-				return Promise.reject(new Error(`location: invalid zipcode: ${zipCode}`));
+				return Promise.reject(new Error(`location: invalid zipcode: ${input}`));
 			}
 
 			let json = await response.json();
+			let date = new Date();
 
 			loc = {
 				cityName: json.places[0]["place name"],
@@ -52,8 +55,50 @@ class Location implements Command {
 				latitude: Number(json.places[0].latitude),
 				longitude: Number(json.places[0].longitude),
 				ipAddress: undefined,
-				asnOrganization: undefined
+				asnOrganization: undefined,
+				utcFetched: date.toUTCString(),
+				unixFetched: date.getDate()
 			};
+		} else if (input) {
+			// This is a very shaky algorithm, so do not rely on it working half of the time
+			let city = input.replaceAll(",", "").substring(0, input.lastIndexOf(" "));
+			let state = input.replaceAll(",", "").substring(input.lastIndexOf(" ") + 1);
+
+			let response = await fetch(`${this.zipApi}/${state}/${city}`);
+			if (!response || !response.ok) {
+				return Promise.reject(new Error(`location: cannot parse with city = ${city} and state = ${state}`));
+			}
+
+			let json = await response.json();
+			let lat = 0;
+			let long = 0;
+			let median = json.places[Math.floor(json.places.length / 2)];
+			
+			// Average out all the points given
+			for (const place of json.places) {
+				lat += Number(place.latitude)
+				long += Number(place.longitude)
+			}
+
+			lat /= json.places.length;
+			long /= json.places.length;
+
+			let date = new Date();
+
+			loc = {
+				cityName: median["place name"],
+				regionCode: json["state abbreviation"],
+				regionName: json.state,
+				countryCode: json["country abbreviation"],
+				countryName: json.country,
+				zipCode: median["post code"],
+				latitude: lat,
+				longitude: long,
+				ipAddress: undefined,
+				asnOrganization: undefined,
+				utcFetched: date.toUTCString(),
+				unixFetched: date.getDate()
+			}
 		} else {
 			let response = await fetch(this.ipApi);
 
@@ -62,6 +107,10 @@ class Location implements Command {
 			}
 
 			loc = await response.json();
+
+			let date = new Date();
+			loc.utcFetched = date.toUTCString();
+			loc.unixFetched = date.getDate();
 		}
 
 		return loc;
@@ -70,11 +119,21 @@ class Location implements Command {
 	public parseArgs(args: string[]): Map<string, string> {
 		let map = new Map<string, string>();
 
+		let etc = [];
+
 		for (let arg of args) {
 			// Only add "valid" zip codes
 			if (/[0-9]{5}/.test(arg)) {
 				map.set("zipCode", arg);
+			} else {
+				etc.push(arg);
 			}
+		}
+
+		// Only keeps valid / non empty values
+		etc = etc.filter(x => x.length > 0);
+		if (etc.length > 0) {
+			map.set("etc", etc.join(" "));
 		}
 
 		return map;
@@ -84,8 +143,8 @@ class Location implements Command {
 		terminal.halt = true;
 
 		try {
-			let zipCode = args.get("zipCode");
-			let loc = await this.fetchLoc(zipCode);
+			let val = args.get("zipCode") ?? args.get("etc");
+			let loc = await this.fetchLoc(val);
 
 			let info = [
 				`City: ${loc.cityName}`,
@@ -96,13 +155,18 @@ class Location implements Command {
 				`Longitude: ${loc.longitude}`
 			];
 
-			if (!zipCode) {
+			if (!val) {
 				info.push(
 					"",
 					`IP Address: ${loc.ipAddress}`,
 					`ASN Organization: ${loc.asnOrganization}`
 				);
 			}
+
+			info.push(
+				"",
+				`Fetched: ${new Date(loc.utcFetched).toLocaleString()}`
+			);
 
 			info.forEach((str) => {
 				terminal.println(str);
