@@ -1,5 +1,6 @@
 import { terminal, type Command } from "$lib/components/listeners/Terminal.svelte";
 import { desktop, type Application } from "$lib/components/listeners/Desktop.svelte";
+import { HeaderMenu, Header } from "$lib/components/Header.svelte";
 import type InputDialog from "$lib/utils/InputDialog.svelte";
 import type InfoDialog from "$lib/utils/InfoDialog.svelte";
 import type ErrorDialog from "$lib/utils/ErrorDialog.svelte";
@@ -7,6 +8,20 @@ import type ErrorDialog from "$lib/utils/ErrorDialog.svelte";
 class BrowserApp implements Command, Application {
 	public name: string = "browser";
 	public desc: string = "barebones browser";
+	public header: Header = new Header()
+		.setLeft([
+			new HeaderMenu("Options")
+				.add("Go Home", () => this.goTo(this.defaultWebsite))
+		]).setRight([
+			new HeaderMenu("Browser")
+				.add("About", () => {
+					this.infoDialog?.log({
+						title: `About ${this.name}`,
+						content: this.help().join("\n")
+					})
+				})
+				.add("Quit", () => desktop.quit())
+		]);
 	public evalOnLoad: string[] = [];
 
 	public defaultWebsite = "https://brandonfglx.github.io/TermOS";

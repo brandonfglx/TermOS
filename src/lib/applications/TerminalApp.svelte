@@ -5,6 +5,7 @@
     import InfoDialog from "$lib/utils/InfoDialog.svelte";
     import InputDialog from "$lib/utils/InputDialog.svelte";
 	import { onMount } from "svelte";
+    import ConfirmDialog from "$lib/utils/ConfirmDialog.svelte";
 
 	let termApp: HTMLDivElement;
 
@@ -38,4 +39,5 @@
 	<InputDialog bind:this={app.inputDialog} />
 	<InfoDialog bind:this={app.infoDialog} />
 	<ErrorDialog bind:this={app.errorDialog} />
+	<ConfirmDialog bind:this={app.confirmDialog} />
 </div>

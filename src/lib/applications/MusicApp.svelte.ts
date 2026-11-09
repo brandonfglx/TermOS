@@ -1,9 +1,10 @@
 import { desktop, type Application } from "$lib/components/listeners/Desktop.svelte";
 import type { Command } from "$lib/components/listeners/Terminal.svelte";
+import { waitUntil } from "$lib/utils/utils";
+import { HeaderMenu, Header } from "$lib/components/Header.svelte";
 import type ErrorDialog from "$lib/utils/ErrorDialog.svelte";
 import type InfoDialog from "$lib/utils/InfoDialog.svelte";
 import type InputDialog from "$lib/utils/InputDialog.svelte";
-import { waitUntil } from "$lib/utils/utils";
 
 class MusicApp implements Command, Application {
 	public name: string = "music";
@@ -20,6 +21,24 @@ class MusicApp implements Command, Application {
 	public player: YT.Player | undefined;
 	private host: HTMLDivElement | undefined;
 	private apiPromise: Promise<void> | undefined;
+
+	public header: Header = new Header()
+		.setLeft([
+			new HeaderMenu("Playlist")
+				.add(this.playing ? "Pause" : "Play", () => this.togglePlaying())
+				.add("Shuffle", () => this.shuffle())
+				.add("Clear Playlist", () => this.playlist.forEach((_, index) => this.remove(index)))
+		])
+		.setRight([
+			new HeaderMenu("Music")
+				.add("About", () => {
+					this.infoDialog?.log({
+						title: `About ${this.name}`,
+						content: this.help().join("\n")
+					})
+				})
+				.add("Quit", () => desktop.quit())
+		]);
 
 	public inputDialog = $state<ReturnType<typeof InputDialog> | null>(null);
 	public infoDialog = $state<ReturnType<typeof InfoDialog> | null>(null);

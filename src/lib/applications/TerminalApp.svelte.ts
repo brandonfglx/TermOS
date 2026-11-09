@@ -1,9 +1,11 @@
 import { kbManager } from "$lib/components/KeyboardManager.svelte";
 import { desktop, type Application } from "$lib/components/listeners/Desktop.svelte";
 import { terminal, type Command } from "$lib/components/listeners/Terminal.svelte";
+import { HeaderMenu, Header } from "$lib/components/Header.svelte";
 import type ErrorDialog from "$lib/utils/ErrorDialog.svelte";
 import type InfoDialog from "$lib/utils/InfoDialog.svelte";
 import InputDialog from "$lib/utils/InputDialog.svelte";
+import ConfirmDialog from "$lib/utils/ConfirmDialog.svelte";
 
 class TerminalApp implements Command, Application {
 	public name: string = "term";
@@ -13,6 +15,21 @@ class TerminalApp implements Command, Application {
 	public inputDialog = $state<ReturnType<typeof InputDialog> | null>(null);
 	public infoDialog = $state<ReturnType<typeof InfoDialog> | null>(null);
 	public errorDialog = $state<ReturnType<typeof ErrorDialog> | null>(null);
+	public confirmDialog = $state<ReturnType<typeof ConfirmDialog> | null>(null);
+
+	public header: Header = new Header()
+		.setLeft([
+			// None yet...
+		])
+		.setRight([
+			new HeaderMenu("Terminal")
+				.add("About", () => {
+					this.infoDialog?.log({
+						title: `About ${this.name} (${this.getVersion()})`,
+						content: this.help().join("\n") + `\n\nTermOS © ${new Date().getFullYear()} brandonfglx\nTermOS is licensed under the GNU General Public License Version 3.\nTermOS source code is available at https://www.github.com/brandonfglx/TermOS`
+					})
+				})
+		]);
 
 	public getVersion(): string {
 		return "v0.0.11";

@@ -1,6 +1,7 @@
 import { desktop, type Application } from "$lib/components/listeners/Desktop.svelte";
 import { terminal, type Command } from "$lib/components/listeners/Terminal.svelte";
 import { File, Directory, fileSystem } from "$lib/components/FileSystem.svelte";
+import { HeaderMenu, Header } from "$lib/components/Header.svelte";
 import InputDialog from "$lib/utils/InputDialog.svelte";
 import InfoDialog from "$lib/utils/InfoDialog.svelte";
 import ErrorDialog from "$lib/utils/ErrorDialog.svelte";
@@ -9,6 +10,21 @@ import ConfirmDialog from "$lib/utils/ConfirmDialog.svelte";
 class FilesApp implements Command, Application {
 	public name: string = "files";
 	public desc: string = "access files in a virtual file system and save it in LocalStorage";
+	public header: Header = new Header()
+		.setLeft([
+			new HeaderMenu("File")
+				.add("New File", () => this.handleNewFile())
+				.add("New Folder", () => this.handleNewFolder())
+		]).setRight([
+			new HeaderMenu("Files")
+				.add("About", () => {
+					this.infoDialog?.log({
+						title: `About ${this.name}`,
+						content: this.help().join("\n")
+					})
+				})
+				.add("Quit", () => desktop.quit())
+		]);
 	public evalOnLoad: string[] = [
 		"alias ls files ls",
 		"alias touch files touch",

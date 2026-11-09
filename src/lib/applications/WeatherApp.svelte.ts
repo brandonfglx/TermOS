@@ -3,12 +3,13 @@ import { terminal, type Command } from "$lib/components/listeners/Terminal.svelt
 import { app as location, type LocationInfo } from "./Location";
 import { fetchWeatherApi } from "openmeteo";
 import { WeatherApiResponse } from "@openmeteo/sdk/weather-api-response";
+import { SvelteMap } from "svelte/reactivity";
+import type { VariableWithValues } from "@openmeteo/sdk/variable-with-values";
+import { HeaderMenu, Header } from "$lib/components/Header.svelte";
 import type InputDialog from "$lib/utils/InputDialog.svelte";
 import type InfoDialog from "$lib/utils/InfoDialog.svelte";
 import type ErrorDialog from "$lib/utils/ErrorDialog.svelte";
 import type ConfirmDialog from "$lib/utils/ConfirmDialog.svelte";
-import { SvelteMap } from "svelte/reactivity";
-import type { VariableWithValues } from "@openmeteo/sdk/variable-with-values";
 
 interface WeatherParams {
 	latitude: number,
@@ -28,6 +29,22 @@ class WeatherApp implements Command, Application {
 	public evalOnLoad: string[] = [];
 
 	private weatherApi: string = "https://api.open-meteo.com/v1/forecast";
+
+	public header: Header = new Header()
+		.setLeft([
+			new HeaderMenu("Options")
+				.add("Clear List", () => this.info.forEach(val => this.remove(val[0])))
+		])
+		.setRight([
+			new HeaderMenu("Weather")
+				.add("About", () => {
+					this.infoDialog?.log({
+						title: `About ${this.name}`,
+						content: this.help().join("\n")
+					})
+				})
+				.add("Quit", () => desktop.quit())
+		]);
 
 	public inputDialog = $state<ReturnType<typeof InputDialog> | null>(null);
 	public infoDialog = $state<ReturnType<typeof InfoDialog> | null>(null);

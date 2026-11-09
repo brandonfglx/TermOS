@@ -2,7 +2,8 @@
  - `loc` now permits fetching using any name using OpenStreetMap's Nominatim API - shows all available locations that match description
  - The `Weather` app now allows the user to input any location by its name. Zip codes are still proccessed through [zippopotam.us], but you are prompted to select a specific location if a name matches multiple locations
  - Information inside Dialogs now do not overflow, rather they will scroll in the x and y direction if needed
- - `Header` finally implemented - control the basics of the terminal (shows information about the current session - including save/load) and application specific functions
+ - `Header` finally implemented - control the basics of the terminal (shows information about the current session - including save/load) and application specific functions; app controls are on the left and "system" controls are on the right
+ - `Text` app fixed to create a file with a name if it doesn't exist (doesn't apply to files that need parent directories to be created)
 
 Known Issues:
  - N/A

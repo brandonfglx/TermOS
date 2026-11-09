@@ -1,5 +1,6 @@
 import type { Component } from "svelte";
-import { kbManager, type KeyboardListener } from "../KeyboardManager.svelte";
+import { kbManager, type KeyboardListener } from "../KeyboardManager.svelte.ts";
+import { type Header } from "../Header.svelte.ts";
 import { SvelteMap } from "svelte/reactivity";
 
 // TODO: Implement app switcher
@@ -160,6 +161,7 @@ class Desktop implements KeyboardListener {
 export interface Application {
 	name: string,
 	desc: string,
+	readonly header: Header,
 	onAppShow(): void, // Runs every time an application is shown (even when the previous app was itself)
 	onAppHide(): void, // Runs every time an applicaiton is hidden/closed
 	keydown(event: KeyboardEvent): void;

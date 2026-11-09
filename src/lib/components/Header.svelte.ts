@@ -10,27 +10,39 @@ export class HeaderItem {
 
 // On click, shows the dropdown of the header items
 export class HeaderMenu {
-	public name: string;
-	public items: HeaderItem[];
+	public name: string = $state("");
+	public items: HeaderItem[] = $state([]);
 
 	constructor(name: string) {
 		this.name = name;
-		this.items = [];
+	}
+
+	public setName(name: string): void {
+		this.name = name;
+	}
+
+	public add(name: string, onclick: () => void): HeaderMenu {
+		return this.addItem(new HeaderItem(name, onclick));
+	}
+
+	public addItem(item: HeaderItem): HeaderMenu {
+		this.items.push(item);
+		return this;
 	}
 }
 
-// TODO: Each application has its own header instance that manages itself; TermOS has a completely seperate header bar area to store general controls
-class Header {
-	public controls: HeaderMenu[];
-	public sysCtrls: HeaderMenu[];
+export class Header {
+	public left = $state<HeaderMenu[] | null>(null);
+	public right = $state<HeaderMenu[] | null>(null);
 
-	constructor() {
-		this.controls = [];
-		this.sysCtrls = [new HeaderMenu("TermOS")];
+	public setLeft(menus: HeaderMenu[]): Header {
+		this.left = menus;
+		return this;
 	}
 
-	public getFormattedDateTime(): string {
-		return new Date().toLocaleString();
+	public setRight(menus: HeaderMenu[]): Header {
+		this.right = menus;
+		return this;
 	}
 }
 
