@@ -2,6 +2,13 @@ import { SvelteMap } from "svelte/reactivity";
 import { kbManager, type KeyboardListener } from "../KeyboardManager.svelte";
 import { app } from "../../applications/TerminalApp.svelte.ts";
 import { app as files } from "../../applications/FilesApp.svelte.ts";
+import { Directory } from "../FileSystem.svelte.ts";
+
+interface Completion {
+	insert: string;
+	display: string;
+	suffix: "" | "/" | " ";
+}
 
 class Terminal implements KeyboardListener {
 	public input: string = $state("");
@@ -121,12 +128,12 @@ class Terminal implements KeyboardListener {
 					this.inputIndex = Math.max(0, Math.min(this.inputIndex + 1, this.input.length));
 				}
 				break;
+			case "Tab":
+				event.preventDefault();
+				this.complete();
+				break;
 			default:
 				let key = event.key;
-
-				if (event.key === "Tab") {
-					key = "\t";
-				}
 
 				if (!event.metaKey && !event.ctrlKey && key !== "Alt" && key !== "Shift" &&
 						key !== "Escape" && key !== "CapsLock" && key !== "Dead" && 
@@ -155,6 +162,139 @@ class Terminal implements KeyboardListener {
 
 	public onFocusGain(): void {}
 	public onFocusLost(): void {}
+
+	// Handles completion for terminal
+	private complete(): void {
+		const { token, start, end, isCommand } = this.getCompletionContext();
+		const candidates = isCommand ? this.getCommandCompletions(token) : this.getFileCompletions(token);
+
+		if (candidates.length === 0) {
+			return;
+		}
+
+		if (candidates.length === 1) {
+			this.applyCompletion(start, end, candidates[0]);
+			return;
+		}
+
+		const common = this.longestCommonPrefix(candidates.map(candidate => candidate.insert));
+		if (common.length > token.length) {
+			this.applyCompletion(start, end, {
+				insert: common,
+				display: common,
+				suffix: ""
+			});
+			return;
+		}
+
+		this.println(candidates.map(candidate => candidate.display).join(" "));
+	}
+
+	private applyCompletion(start: number, end: number, candidate: Completion): void {
+		let suffix = candidate.suffix;
+
+		if (suffix === " " && this.input[end] === " ") {
+			suffix = "";
+		} else if (suffix === "/" && this.input[end] === "/") {
+			suffix = "";
+		}
+
+		const repl = candidate.insert + suffix;
+		this.input = this.input.slice(0, start) + repl + this.input.slice(end);
+		this.inputIndex = start + repl.length;
+	}
+
+	private getCompletionContext(): { token: string, start: number, end: number, isCommand: boolean } {
+		const cursor = this.inputIndex;
+		let start = cursor;
+
+		while (start > 0 && !/[\s;]/.test(this.input[start - 1])) {
+			start--;
+		}
+
+		let end = cursor;
+		while (end < this.input.length && !/[\s;]/.test(this.input[end])) {
+			end++;
+		}
+
+		return {
+			token: this.input.slice(start, cursor),
+			start,
+			end,
+			isCommand: this.input.slice(this.input.lastIndexOf(";", start - 1) + 1, start).trim().length === 0
+		};
+	}
+
+	private getCommandCompletions(token: string): Completion[] {
+		const names = new Set<string>([...this.commands.keys(), ...this.aliases.keys()]);
+		const lower = token.toLowerCase();
+
+		return [...names]
+			.filter((name) => name.toLowerCase().startsWith(lower))
+			.sort((a, b) => a.localeCompare(b))
+			.map((name) => ({
+				insert: name,
+				display: name,
+				suffix: " "
+			}));
+	}
+
+	private getFileCompletions(token: string): Completion[] {
+		const slash = token.lastIndexOf("/");
+		const dirPart = slash >= 0 ? token.slice(0, slash + 1): "";
+		const base = token.slice(slash + 1);
+		const parsed = files.parsePath(token);
+
+		let parent: Directory | null;
+
+		if (token.endsWith("/")) {
+			parent = files.find(parsed, "d");
+		} else if (token.includes("/")) {
+			const parentPath = parsed.substring(0, parsed.lastIndexOf("/")) || "/";
+			parent = files.find(parentPath, "d");
+		} else {
+			parent = files.getCwd();
+		}
+
+		if (!parent) {
+			return [];
+		}
+
+		const lower = base.toLowerCase();
+
+		return parent
+			.getAll()
+			.filter(child => child.name.toLowerCase().startsWith(lower))
+			.map(child => ({
+				insert: dirPart + this.escapeCompletion(child.name),
+				display: child.name,
+				suffix: child instanceof Directory ? "/" : " "
+			}));
+	}
+
+	private escapeCompletion(val: string): string {
+		return val.replace(/([\\ ;])/g, "\\$1");
+	}
+
+	private longestCommonPrefix(values: string[]): string {
+		if (values.length === 0) {
+			return "";
+		}
+
+		let prefix = values[0];
+
+		for (const value of values.slice(1)) {
+			while (!value.startsWith(prefix)) {
+				prefix = prefix.slice(0, -1);
+			}
+
+			if (prefix.length === 0) {
+				break;
+			}
+		}
+
+		return prefix;
+	}
 
 	public println(str: string = "\0"): void {
 		if (this.silent) {

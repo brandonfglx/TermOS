@@ -1,4 +1,17 @@
+# Release v0.1.0
+Hooray! After a few weeks under Terra, TermOS is finally in a "beta" state. It has all the features I want in an online operating system. With this update, it clears out all of the things I was missing. This doesn't mean the end of TermOS, though; I still got plenty of ideas to go around, but I want to move on to different projects
+
+What's New:
+ - Added AppSwitcher: quickly load apps using a GUI interface activated by using Ctrl + `
+ - Added Command Palette: quickly open files, launch applications, or execute commands by using Meta + k
+ - Added terminal autocomplete: tap Tab for the terminal to autocomplete your input; if ambiguous, then multiple options are printed to the console
+ - Bumped version to v0.1.0 (:D)
+
+Known Issues:
+ - None
+
 # Release v0.0.12
+What's New:
  - `loc` now permits fetching using any name using OpenStreetMap's Nominatim API - shows all available locations that match description
  - The `Weather` app now allows the user to input any location by its name. Zip codes are still proccessed through [zippopotam.us], but you are prompted to select a specific location if a name matches multiple locations
  - Information inside Dialogs now do not overflow, rather they will scroll in the x and y direction if needed

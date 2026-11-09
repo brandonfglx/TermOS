@@ -32,7 +32,7 @@ class TerminalApp implements Command, Application {
 		]);
 
 	public getVersion(): string {
-		return "v0.0.11";
+		return "v0.1.0";
 	}
 
 	public help(args?: string[]): string[] {

@@ -3,15 +3,14 @@ import { kbManager, type KeyboardListener } from "../KeyboardManager.svelte.ts";
 import { type Header } from "../Header.svelte.ts";
 import { SvelteMap } from "svelte/reactivity";
 
-// TODO: Implement app switcher
 class Desktop implements KeyboardListener {
 	private apps = $state(new SvelteMap<string, Application>());
 	private comps = $state(new SvelteMap<string, Component>());
 	public active = $state<[string, Application, Component] | null>(null); // Application name paired with actual Component (HTML)
 	public viewStack = $state<Application[]>([]);
 	private default: string = "TerminalApp"; // Initially loaded app, finds by matching name
-	private switching = $state(false);
-	private switchIndex = $state(0);
+	public switching = $state(false);
+	public switchIndex = $state(0);
 
 	public loadApplications(): void {
 		const svModules = import.meta.glob<{default: Component}>("$lib/applications/*App.svelte", { eager: true });
@@ -113,28 +112,112 @@ class Desktop implements KeyboardListener {
 		return this.comps;
 	}
 
+	public getSwitchApps(): Application[] {
+		return [...this.apps.values()];
+	}
+
+	public handleGlobalKeydown(event: KeyboardEvent): boolean {
+		if ((event.key === "Tab" || event.code === "Backquote") && (event.metaKey || event.ctrlKey)) {
+			event.preventDefault();
+
+			if (!this.switching) {
+				this.beginSwitch(event.shiftKey ? -1 : 1);
+			} else {
+				this.moveSwitch(event.shiftKey ? -1 : 1);
+			}
+
+			return true;
+		}
+
+		if (!this.switching) {
+			return false;
+		}
+
+		switch (event.key) {
+			case "ArrowRight":
+				event.preventDefault();
+				this.moveSwitch(1);
+				return true;
+			case "ArrowLeft":
+				event.preventDefault();
+				this.moveSwitch(-1);
+				return true;
+			case "Escape":
+				event.preventDefault();
+				this.cancelSwitch();
+				return true;
+			default:
+				return false;
+		}
+	}
+
+	public handleGlobalKeyup(event: KeyboardEvent): boolean {
+		if (this.switching && (event.key === "Meta" || event.key === "Control")) {
+			event.preventDefault();
+			this.commitSwitch();
+			return true;
+		}
+
+		return false;
+	}
+
+	public switchToIndex(index: number): boolean {
+		const app = this.getSwitchApps()[index];
+		if (!app) {
+			return false;
+		}
+
+		this.switching = false;
+
+		if (app === this.active?.[1]) {
+			return true;
+		}
+
+		return this.switchTo(app);
+	}
+
+	public cancelSwitch(): void {
+		this.switching = false;
+	}
+
+	private beginSwitch(direction: -1 | 1): void {
+		const apps = this.getSwitchApps();
+		if (apps.length === 0) {
+			return;
+		}
+
+		const activeIndex = apps.findIndex((app) => app === this.active?.[1]);
+		const base = activeIndex >= 0 ? activeIndex : direction === 1 ? -1 : 0;
+
+		this.switching = true;
+		this.switchIndex = (base + direction + apps.length) % apps.length;
+	}
+
+	private moveSwitch(direciton: -1 | 1): void {
+		const apps = this.getSwitchApps();
+		if (apps.length === 0) {
+			this.switching = false;
+			return;
+		}
+
+		this.switchIndex = (this.switchIndex + direciton + apps.length) % apps.length;
+	}
+
+	private commitSwitch(): void {
+		const app = this.getSwitchApps()[this.switchIndex];
+		this.switching = false;
+
+		if (app && app !== this.active?.[1]) {
+			this.switchTo(app);
+		}
+	}
+
 	// NOTE: Applications themselves should implement their own KeyboardManager, which captures the events passed by the Desktop
 	//		only if they have elements that need to capture key presses (<input> can still be used as raw, but may conflict with
 	//		KeyboardManager inputs).
 
 	public keydown(event: KeyboardEvent): void {
-		if (this.switching && event.metaKey) {
-			if (event.metaKey && event.key === "Tab" || event.key === "ArrowRight") {
-				this.switchIndex = Math.min(this.apps.size, this.switchIndex + 1);
-			} else if (event.key === "ArrowLeft") {
-				this.switchIndex = Math.max(0, this.switchIndex - 1);
-			}
-		} else {
-			this.switching = false;
-		}
-
-		if (event.metaKey && event.key === "Tab") {
-			this.switching = true;
-		}
-
-		if (this.active) {
-			this.active[1].keydown(event);
-		}
+		this.active?.[1].keydown(event);
 	}
 
 	public keyup(event: KeyboardEvent): void {
